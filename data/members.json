@@ -1,0 +1,40 @@
+{
+  "members": [
+    {
+      "id": "jiangduyi",
+      "name": "江都夷",
+      "role": "社主",
+      "avatar": "assets/jiangduyi.png",
+      "portrait": "assets/jiangduyi-portrait.png",
+      "tags": ["见道修", "涅槃港", "执灯领港"],
+      "quote": "知我罪我，其惟春秋。"
+    },
+    {
+      "id": "shengyang",
+      "name": "晟杨",
+      "role": "副社主",
+      "avatar": "assets/member-placeholder.png",
+      "portrait": "",
+      "tags": ["副社主", "同袍", "掌舵"],
+      "quote": "风起时并肩，潮落处守港。"
+    },
+    {
+      "id": "member-001",
+      "name": "待录入成员",
+      "role": "港内成员",
+      "avatar": "assets/member-placeholder.png",
+      "portrait": "",
+      "tags": ["百业", "待补角色图", "涅槃港"],
+      "quote": "此席待君归港。"
+    },
+    {
+      "id": "member-002",
+      "name": "待录入成员",
+      "role": "港内成员",
+      "avatar": "assets/member-placeholder.png",
+      "portrait": "",
+      "tags": ["百业", "待补资料", "同游燕云"],
+      "quote": "一灯照水，万象成港。"
+    }
+  ]
+}

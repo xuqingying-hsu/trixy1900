@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>燕云十六声 · 涅槃港</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="harbor-screen" aria-live="polite">
+      <div class="wash wash-left"></div>
+      <div class="wash wash-right"></div>
+      <div class="grain"></div>
+
+      <header class="topbar">
+        <section class="brand" aria-label="涅槃港">
+          <span class="brand-mark">槃</span>
+          <div>
+            <p class="eyebrow">燕云十六声 · 百业</p>
+            <h1>涅槃港</h1>
+          </div>
+        </section>
+
+        <section class="leaders" aria-label="社团职位">
+          <article>
+            <span>社主</span>
+            <strong>江都夷</strong>
+          </article>
+          <article>
+            <span>副社主</span>
+            <strong>晟杨</strong>
+          </article>
+        </section>
+      </header>
+
+      <section class="stage" id="memberStage">
+        <div class="stage-copy">
+          <p class="section-kicker">当前聚焦</p>
+          <h2 id="memberName">江都夷</h2>
+          <p class="role-line" id="memberRole">社主</p>
+          <p class="quote" id="memberQuote">知我罪我，其惟春秋。</p>
+          <div class="tag-row" id="memberTags"></div>
+        </div>
+
+        <div class="portrait-wrap">
+          <div class="halo"></div>
+          <button class="music-disc" id="musicToggle" type="button" aria-pressed="false">
+            <span>港音</span>
+          </button>
+          <img id="memberPortrait" class="portrait" src="assets/jiangduyi-portrait.png" alt="江都夷角色形象" />
+          <div class="gold-stroke"></div>
+        </div>
+
+        <aside class="profile-panel" aria-label="成员档案">
+          <p>涅槃港名册</p>
+          <strong id="memberIndex">01</strong>
+          <span id="memberTotal">/ 04</span>
+          <div class="progress"><i id="cycleProgress"></i></div>
+        </aside>
+      </section>
+
+      <nav class="roster" aria-label="成员列表">
+        <div class="roster-head">
+          <span>港内成员</span>
+          <b id="rosterCount">0</b>
+        </div>
+        <div class="member-track" id="memberRoster"></div>
+      </nav>
+    </main>
+  </body>
+</html>
