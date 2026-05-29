@@ -37,14 +37,44 @@ const rosterCountEl = document.querySelector("#rosterCount");
 const memberIndexEl = document.querySelector("#memberIndex");
 const memberTotalEl = document.querySelector("#memberTotal");
 const progressEl = document.querySelector("#cycleProgress");
-const musicToggle = document.querySelector("#musicToggle");
+const adminOpen = document.querySelector("#adminOpen");
+const adminPanel = document.querySelector("#adminPanel");
+const adminClose = document.querySelector("#adminClose");
+const adminAdd = document.querySelector("#adminAdd");
+const adminForm = document.querySelector("#adminForm");
+const adminMemberList = document.querySelector("#adminMemberList");
+const adminName = document.querySelector("#adminName");
+const adminRole = document.querySelector("#adminRole");
+const adminTags = document.querySelector("#adminTags");
+const adminQuote = document.querySelector("#adminQuote");
+const adminAvatar = document.querySelector("#adminAvatar");
+const adminPortrait = document.querySelector("#adminPortrait");
+const adminDelete = document.querySelector("#adminDelete");
+const adminExport = document.querySelector("#adminExport");
+const adminPublish = document.querySelector("#adminPublish");
+const adminStatus = document.querySelector("#adminStatus");
+const githubToken = document.querySelector("#githubToken");
 let audioContext = null;
 let musicNodes = [];
 let musicTimer = null;
 let musicOn = false;
+let musicUnlocked = false;
+let adminIndex = 0;
+
+const localMembersKey = "nirvana-harbor-members";
+const repoConfig = {
+  owner: "xuqingying-hsu",
+  repo: "trixy1900",
+  branch: "main"
+};
 
 async function loadMembers() {
   try {
+    const localMembers = readLocalMembers();
+    if (localMembers) {
+      return localMembers;
+    }
+
     const response = await fetch("data/members.json", { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`members.json returned ${response.status}`);
@@ -56,6 +86,24 @@ async function loadMembers() {
     console.warn("Using built-in member data:", error);
     return fallbackMembers;
   }
+}
+
+function readLocalMembers() {
+  try {
+    const saved = localStorage.getItem(localMembersKey);
+    if (!saved) {
+      return null;
+    }
+    const data = JSON.parse(saved);
+    return Array.isArray(data.members) && data.members.length ? data.members : null;
+  } catch (error) {
+    console.warn("Local member data is invalid:", error);
+    return null;
+  }
+}
+
+function saveLocalMembers() {
+  localStorage.setItem(localMembersKey, JSON.stringify({ members }));
 }
 
 function imageFor(member) {
@@ -97,6 +145,12 @@ function renderRoster() {
     card.addEventListener("mouseleave", resumeCycle);
     rosterEl.append(card);
   });
+}
+
+function refreshShowcase(index = activeIndex) {
+  renderRoster();
+  renderAdminList();
+  setActive(Math.min(index, members.length - 1));
 }
 
 function setActive(index, userInitiated = false) {
@@ -200,6 +254,243 @@ function escapeHtml(value = "") {
   });
 }
 
+function openAdmin() {
+  adminPanel.classList.add("is-open");
+  adminPanel.setAttribute("aria-hidden", "false");
+  adminIndex = Math.min(activeIndex, members.length - 1);
+  renderAdminList();
+  fillAdminForm();
+}
+
+function closeAdmin() {
+  adminPanel.classList.remove("is-open");
+  adminPanel.setAttribute("aria-hidden", "true");
+}
+
+function renderAdminList() {
+  if (!adminMemberList) {
+    return;
+  }
+
+  adminMemberList.innerHTML = "";
+  members.forEach((member, index) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = `admin-member-button${index === adminIndex ? " is-active" : ""}`;
+    item.innerHTML = `
+      <img src="${escapeHtml(member.avatar || imageFor(member))}" alt="">
+      <strong>${escapeHtml(member.name)}</strong>
+      <span>${escapeHtml(member.role)}</span>
+    `;
+    item.addEventListener("click", () => {
+      adminIndex = index;
+      renderAdminList();
+      fillAdminForm();
+    });
+    adminMemberList.append(item);
+  });
+}
+
+function fillAdminForm() {
+  const member = members[adminIndex] || createBlankMember();
+  adminName.value = member.name || "";
+  adminRole.value = member.role || "";
+  adminTags.value = (member.tags || []).join("，");
+  adminQuote.value = member.quote || "";
+  adminAvatar.value = "";
+  adminPortrait.value = "";
+}
+
+function createBlankMember() {
+  return {
+    id: `member-${Date.now().toString(36)}`,
+    name: "新成员",
+    role: "港内成员",
+    avatar: placeholderImage,
+    portrait: "",
+    tags: ["涅槃港"],
+    quote: "长风入港，同赴涅槃。"
+  };
+}
+
+function memberFromForm(existing) {
+  return {
+    ...existing,
+    id: existing.id || slugify(adminName.value || "member"),
+    name: adminName.value.trim(),
+    role: adminRole.value.trim(),
+    tags: adminTags.value
+      .split(/[，,]/)
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    quote: adminQuote.value.trim()
+  };
+}
+
+function slugify(value) {
+  const slug = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || `member-${Date.now().toString(36)}`;
+}
+
+async function fileToDataUrl(file, maxWidth, quality = 0.86) {
+  if (!file) {
+    return "";
+  }
+
+  const rawUrl = await readFileAsDataUrl(file);
+  const img = await loadImage(rawUrl);
+  const scale = Math.min(1, maxWidth / img.naturalWidth);
+  const width = Math.max(1, Math.round(img.naturalWidth * scale));
+  const height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function downloadMembersJson() {
+  const blob = new Blob([JSON.stringify({ members }, null, 2)], {
+    type: "application/json"
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "members.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function setAdminStatus(message) {
+  adminStatus.textContent = message;
+}
+
+async function publishToGithub() {
+  const token = githubToken.value.trim();
+  if (!token) {
+    setAdminStatus("请先粘贴 GitHub token。需要 repo contents 读写权限。");
+    return;
+  }
+
+  adminPublish.disabled = true;
+  setAdminStatus("正在准备图片和名册数据...");
+
+  try {
+    const publishedMembers = [];
+    for (const member of members) {
+      const cleanMember = { ...member };
+      cleanMember.id = cleanMember.id || slugify(cleanMember.name);
+
+      if (isDataUrl(cleanMember.avatar)) {
+        const avatarPath = `assets/members/${cleanMember.id}-avatar.jpg`;
+        await putGithubFile(token, avatarPath, dataUrlBase64(cleanMember.avatar), `Update ${cleanMember.name} avatar`);
+        cleanMember.avatar = avatarPath;
+      }
+
+      if (isDataUrl(cleanMember.portrait)) {
+        const portraitPath = `assets/members/${cleanMember.id}-portrait.jpg`;
+        await putGithubFile(token, portraitPath, dataUrlBase64(cleanMember.portrait), `Update ${cleanMember.name} portrait`);
+        cleanMember.portrait = portraitPath;
+      }
+
+      publishedMembers.push(cleanMember);
+      setAdminStatus(`正在发布：${cleanMember.name}`);
+    }
+
+    const json = JSON.stringify({ members: publishedMembers }, null, 2);
+    await putGithubFile(token, "data/members.json", utf8ToBase64(json), "Update Nirvana Harbor members");
+
+    members = publishedMembers;
+    saveLocalMembers();
+    refreshShowcase(adminIndex);
+    setAdminStatus("发布成功。GitHub Pages 通常会在 1 分钟内更新。");
+  } catch (error) {
+    console.error(error);
+    setAdminStatus(`发布失败：${error.message}`);
+  } finally {
+    adminPublish.disabled = false;
+  }
+}
+
+function isDataUrl(value) {
+  return typeof value === "string" && value.startsWith("data:");
+}
+
+function dataUrlBase64(value) {
+  return value.split(",")[1] || "";
+}
+
+function utf8ToBase64(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
+}
+
+async function putGithubFile(token, path, content, message) {
+  const apiPath = `https://api.github.com/repos/${repoConfig.owner}/${repoConfig.repo}/contents/${encodeURIComponentPath(path)}`;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+  let sha;
+
+  const current = await fetch(`${apiPath}?ref=${repoConfig.branch}`, { headers });
+  if (current.ok) {
+    const data = await current.json();
+    sha = data.sha;
+  } else if (current.status !== 404) {
+    throw new Error(`读取 ${path} 失败：${current.status}`);
+  }
+
+  const response = await fetch(apiPath, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({
+      message,
+      content,
+      branch: repoConfig.branch,
+      sha
+    })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`写入 ${path} 失败：${response.status} ${text.slice(0, 120)}`);
+  }
+}
+
+function encodeURIComponentPath(path) {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
 function ensureAudioContext() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) {
@@ -215,15 +506,16 @@ function ensureAudioContext() {
 function playHarborTone() {
   const ctx = ensureAudioContext();
   if (!ctx) {
-    musicToggle.textContent = "无声";
     return;
   }
 
-  ctx.resume();
+  ctx.resume().then(() => {
+    musicUnlocked = true;
+  }).catch(() => {
+    musicUnlocked = false;
+  });
   stopHarborTone(false);
   musicOn = true;
-  musicToggle.classList.add("is-playing");
-  musicToggle.setAttribute("aria-pressed", "true");
 
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, ctx.currentTime);
@@ -301,19 +593,98 @@ function stopHarborTone(markStopped = true) {
 
   if (markStopped) {
     musicOn = false;
-    musicToggle.classList.remove("is-playing");
-    musicToggle.setAttribute("aria-pressed", "false");
   }
 }
 
-musicToggle.addEventListener("click", (event) => {
-  event.stopPropagation();
+function startAutoplayBgm() {
+  playHarborTone();
+
+  const unlock = () => {
+    if (!musicOn) {
+      playHarborTone();
+    }
+
+    if (audioContext && audioContext.state === "suspended") {
+      audioContext.resume().then(() => {
+        musicUnlocked = true;
+      }).catch(() => {
+        musicUnlocked = false;
+      });
+    }
+
+    if (musicUnlocked || (audioContext && audioContext.state === "running")) {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    }
+  };
+
+  window.addEventListener("pointerdown", unlock);
+  window.addEventListener("keydown", unlock);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && audioContext && audioContext.state === "suspended") {
+      audioContext.resume().catch(() => {});
+    }
+  });
+}
+
+window.addEventListener("beforeunload", () => {
   if (musicOn) {
     stopHarborTone();
-  } else {
-    playHarborTone();
   }
 });
+
+window.addEventListener("load", () => {
+  if (!musicOn) {
+    startAutoplayBgm();
+  }
+});
+
+adminOpen.addEventListener("click", openAdmin);
+adminClose.addEventListener("click", closeAdmin);
+adminPanel.addEventListener("click", (event) => {
+  if (event.target === adminPanel) {
+    closeAdmin();
+  }
+});
+adminAdd.addEventListener("click", () => {
+  members.push(createBlankMember());
+  adminIndex = members.length - 1;
+  saveLocalMembers();
+  refreshShowcase(adminIndex);
+  fillAdminForm();
+});
+adminForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const existing = members[adminIndex] || createBlankMember();
+  const updated = memberFromForm(existing);
+
+  if (adminAvatar.files[0]) {
+    updated.avatar = await fileToDataUrl(adminAvatar.files[0], 520, 0.84);
+  }
+  if (adminPortrait.files[0]) {
+    updated.portrait = await fileToDataUrl(adminPortrait.files[0], 2200, 0.86);
+  }
+
+  members[adminIndex] = updated;
+  saveLocalMembers();
+  refreshShowcase(adminIndex);
+  fillAdminForm();
+  setAdminStatus("已保存到当前浏览器预览。");
+});
+adminDelete.addEventListener("click", () => {
+  if (members.length <= 1) {
+    setAdminStatus("至少保留一名成员。");
+    return;
+  }
+  members.splice(adminIndex, 1);
+  adminIndex = Math.max(0, adminIndex - 1);
+  saveLocalMembers();
+  refreshShowcase(adminIndex);
+  fillAdminForm();
+  setAdminStatus("已删除成员。");
+});
+adminExport.addEventListener("click", downloadMembersJson);
+adminPublish.addEventListener("click", publishToGithub);
 
 stage.addEventListener("mouseenter", pauseCycle);
 stage.addEventListener("mouseleave", resumeCycle);
@@ -321,6 +692,7 @@ stage.addEventListener("mouseleave", resumeCycle);
 loadMembers().then((loadedMembers) => {
   members = loadedMembers;
   renderRoster();
+  renderAdminList();
   setActive(0);
   startCycle();
 });

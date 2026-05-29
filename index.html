@@ -31,6 +31,7 @@
             <span>副社主</span>
             <strong>晟杨</strong>
           </article>
+          <button class="admin-open" id="adminOpen" type="button">名册管理</button>
         </section>
       </header>
 
@@ -45,9 +46,6 @@
 
         <div class="portrait-wrap">
           <div class="halo"></div>
-          <button class="music-disc" id="musicToggle" type="button" aria-pressed="false">
-            <span>港音</span>
-          </button>
           <img id="memberPortrait" class="portrait" src="assets/jiangduyi-portrait.png" alt="江都夷角色形象" />
           <div class="gold-stroke"></div>
         </div>
@@ -67,6 +65,69 @@
         </div>
         <div class="member-track" id="memberRoster"></div>
       </nav>
+
+      <section class="admin-panel" id="adminPanel" aria-hidden="true">
+        <div class="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+          <header class="admin-head">
+            <div>
+              <p class="eyebrow">涅槃港后台</p>
+              <h3 id="adminTitle">名册管理</h3>
+            </div>
+            <button class="admin-close" id="adminClose" type="button" aria-label="关闭名册管理">×</button>
+          </header>
+
+          <div class="admin-grid">
+            <aside class="admin-list">
+              <button class="admin-add" id="adminAdd" type="button">新成员</button>
+              <div id="adminMemberList"></div>
+            </aside>
+
+            <form class="admin-form" id="adminForm">
+              <label>
+                游戏 ID
+                <input id="adminName" name="name" type="text" required placeholder="例如：江都夷" />
+              </label>
+              <label>
+                职位
+                <input id="adminRole" name="role" type="text" required placeholder="例如：港内成员" />
+              </label>
+              <label>
+                标签
+                <input id="adminTags" name="tags" type="text" placeholder="用逗号分隔，例如：见道修,涅槃港" />
+              </label>
+              <label>
+                角色短句
+                <textarea id="adminQuote" name="quote" rows="3" placeholder="一句成员宣言"></textarea>
+              </label>
+              <div class="admin-files">
+                <label>
+                  头像图
+                  <input id="adminAvatar" name="avatar" type="file" accept="image/*" />
+                </label>
+                <label>
+                  角色展示图
+                  <input id="adminPortrait" name="portrait" type="file" accept="image/*" />
+                </label>
+              </div>
+              <div class="admin-actions">
+                <button type="submit">保存到页面</button>
+                <button id="adminDelete" type="button">删除成员</button>
+                <button id="adminExport" type="button">导出数据</button>
+              </div>
+            </form>
+
+            <aside class="admin-publish">
+              <p>本地保存只会更新你当前浏览器。要让所有成员看到，请发布到 GitHub Pages。</p>
+              <label>
+                GitHub Token
+                <input id="githubToken" type="password" autocomplete="off" placeholder="只临时用于发布，不写入网页" />
+              </label>
+              <button id="adminPublish" type="button">发布到 GitHub</button>
+              <output id="adminStatus">等待操作</output>
+            </aside>
+          </div>
+        </div>
+      </section>
     </main>
   </body>
 </html>

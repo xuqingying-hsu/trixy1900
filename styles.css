@@ -258,6 +258,38 @@ h1 {
   backdrop-filter: blur(18px);
 }
 
+.admin-open,
+.admin-close,
+.admin-add,
+.admin-actions button,
+.admin-publish button {
+  border: 1px solid rgba(201, 160, 77, 0.42);
+  background: rgba(201, 160, 77, 0.12);
+  color: var(--paper);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-open {
+  align-self: stretch;
+  padding: 0 14px;
+  color: var(--gold-bright);
+  font-size: 13px;
+}
+
+.admin-open:hover,
+.admin-close:hover,
+.admin-add:hover,
+.admin-actions button:hover,
+.admin-publish button:hover {
+  border-color: rgba(243, 213, 140, 0.82);
+  background: rgba(201, 160, 77, 0.22);
+  transform: translateY(-1px);
+}
+
 .leaders article {
   min-width: 118px;
   flex-direction: column;
@@ -418,76 +450,6 @@ h1 {
     conic-gradient(from 32deg, rgba(201, 160, 77, 0.4), transparent 18%, rgba(244, 240, 229, 0.28), transparent 42%, rgba(201, 160, 77, 0.28), transparent 64%);
   filter: blur(2px);
   animation: turn 18s linear infinite;
-}
-
-.music-disc {
-  position: absolute;
-  z-index: 6;
-  left: 44%;
-  top: 59%;
-  display: grid;
-  width: min(10vw, 118px);
-  min-width: 86px;
-  aspect-ratio: 1;
-  place-items: center;
-  border: 1px solid rgba(243, 213, 140, 0.38);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at center, rgba(3, 3, 3, 0.92) 0 17%, transparent 18%),
-    radial-gradient(circle at center, rgba(243, 213, 140, 0.2) 0 18%, transparent 19% 32%, rgba(244, 240, 229, 0.08) 33% 34%, transparent 35% 50%, rgba(201, 160, 77, 0.17) 51% 52%, transparent 53%),
-    conic-gradient(from 30deg, rgba(243, 213, 140, 0.38), rgba(244, 240, 229, 0.05), rgba(201, 160, 77, 0.24), rgba(244, 240, 229, 0.06), rgba(243, 213, 140, 0.38));
-  color: var(--gold-bright);
-  cursor: pointer;
-  font-family: var(--font-brush);
-  font-size: 20px;
-  letter-spacing: 0;
-  opacity: 0.62;
-  transform: translate(-50%, -50%);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
-}
-
-.music-disc::before,
-.music-disc::after {
-  position: absolute;
-  border-radius: 50%;
-  content: "";
-  pointer-events: none;
-}
-
-.music-disc::before {
-  inset: 14%;
-  border: 1px solid rgba(244, 240, 229, 0.12);
-}
-
-.music-disc::after {
-  inset: 47%;
-  background: var(--paper);
-  box-shadow: 0 0 20px rgba(244, 240, 229, 0.35);
-}
-
-.music-disc span {
-  position: relative;
-  z-index: 1;
-  padding-top: 38%;
-  text-shadow: 0 0 16px rgba(0, 0, 0, 0.88);
-}
-
-.music-disc:hover,
-.music-disc.is-playing {
-  opacity: 1;
-  border-color: rgba(243, 213, 140, 0.82);
-  box-shadow:
-    0 0 34px rgba(201, 160, 77, 0.2),
-    inset 0 0 30px rgba(201, 160, 77, 0.12);
-  transform: translate(-50%, -50%) scale(1.035);
-}
-
-.music-disc.is-playing {
-  animation: disc-spin 8s linear infinite;
 }
 
 .portrait {
@@ -693,6 +655,172 @@ h1 {
   font-size: 12px;
 }
 
+.admin-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.74);
+  backdrop-filter: blur(14px);
+}
+
+.admin-panel.is-open {
+  display: flex;
+}
+
+.admin-dialog {
+  width: min(1080px, 96vw);
+  max-height: 90vh;
+  overflow: hidden;
+  border: 1px solid rgba(243, 213, 140, 0.32);
+  background:
+    linear-gradient(135deg, rgba(201, 160, 77, 0.12), transparent 42%),
+    rgba(10, 10, 9, 0.96);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.72);
+}
+
+.admin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 22px;
+  border-bottom: 1px solid rgba(244, 240, 229, 0.12);
+}
+
+.admin-head h3 {
+  margin: 4px 0 0;
+  font-family: var(--font-title);
+  font-size: 34px;
+  font-weight: 400;
+}
+
+.admin-close {
+  width: 42px;
+  height: 42px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.admin-grid {
+  display: grid;
+  max-height: calc(90vh - 92px);
+  grid-template-columns: minmax(180px, 0.7fr) minmax(320px, 1.25fr) minmax(220px, 0.8fr);
+  gap: 16px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.admin-list,
+.admin-form,
+.admin-publish {
+  border: 1px solid rgba(244, 240, 229, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 14px;
+}
+
+.admin-add,
+.admin-actions button,
+.admin-publish button {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+#adminMemberList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-member-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(244, 240, 229, 0.12);
+  background: rgba(8, 8, 7, 0.54);
+  color: var(--paper);
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.admin-member-button.is-active {
+  border-color: rgba(243, 213, 140, 0.64);
+  background: rgba(201, 160, 77, 0.14);
+}
+
+.admin-member-button img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+}
+
+.admin-member-button span {
+  display: block;
+  color: var(--gold-bright);
+  font-size: 12px;
+}
+
+.admin-form,
+.admin-publish {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.admin-form label,
+.admin-publish label {
+  display: grid;
+  gap: 6px;
+  color: rgba(244, 240, 229, 0.66);
+  font-size: 13px;
+}
+
+.admin-form input,
+.admin-form textarea,
+.admin-publish input {
+  width: 100%;
+  border: 1px solid rgba(244, 240, 229, 0.16);
+  background: rgba(0, 0, 0, 0.38);
+  color: var(--paper);
+  padding: 10px 11px;
+  outline: none;
+}
+
+.admin-form textarea {
+  resize: vertical;
+}
+
+.admin-files,
+.admin-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-publish p,
+.admin-publish output {
+  margin: 0;
+  color: rgba(244, 240, 229, 0.68);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-publish output {
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid rgba(244, 240, 229, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+}
+
 @keyframes drift {
   to {
     transform: translate3d(-94px, 94px, 0);
@@ -708,12 +836,6 @@ h1 {
 @keyframes fill {
   to {
     width: 100%;
-  }
-}
-
-@keyframes disc-spin {
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -733,10 +855,6 @@ h1 {
   .portrait-wrap {
     min-height: 50vh;
     margin-top: -18px;
-  }
-
-  .music-disc {
-    width: min(18vw, 112px);
   }
 
   .portrait {
@@ -782,6 +900,19 @@ h1 {
     width: 100%;
   }
 
+  .admin-open {
+    min-height: 42px;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-files,
+  .admin-actions {
+    grid-template-columns: 1fr;
+  }
+
   .stage-copy h2 {
     font-size: clamp(44px, 17vw, 72px);
   }
@@ -793,11 +924,6 @@ h1 {
 
   .portrait-wrap {
     min-height: 44vh;
-  }
-
-  .music-disc {
-    min-width: 74px;
-    font-size: 16px;
   }
 
   .profile-panel {
