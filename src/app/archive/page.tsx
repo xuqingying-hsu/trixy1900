@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { formatChineseDate } from "@/lib/dates";
 import { getPublishedArchive } from "@/lib/db";
+import { legacyReadings } from "@/lib/legacy-readings";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,7 @@ export default function ArchivePage() {
       <SiteHeader />
       <main className="shell py-8 sm:py-12">
         <h1 className="mb-6 text-3xl font-black sm:text-4xl">历史大众占卜</h1>
-        {readings.length === 0 ? (
-          <div className="panel p-6 text-[var(--muted)]">还没有已发布的历史内容。</div>
-        ) : (
+        {readings.length > 0 ? (
           <div className="grid gap-3">
             {readings.map((reading) => (
               <Link
@@ -34,7 +33,35 @@ export default function ArchivePage() {
               </Link>
             ))}
           </div>
-        )}
+        ) : null}
+
+        <section className={readings.length > 0 ? "mt-8" : ""}>
+          <div className="mb-4">
+            <p className="text-sm font-bold text-[var(--jade)]">往期旧稿存档</p>
+            <h2 className="mt-1 text-2xl font-black">早期大众占卜长图</h2>
+          </div>
+          <div className="grid gap-3">
+            {legacyReadings.map((reading) => (
+              <Link
+                href={`/archive/legacy/${reading.slug}`}
+                key={reading.slug}
+                className="panel flex items-center justify-between gap-4 p-5 transition hover:border-[var(--jade)]"
+              >
+                <span>
+                  <span className="mb-1 block text-sm font-bold text-[var(--muted)]">
+                    旧稿长图
+                  </span>
+                  <span className="text-lg font-black">{reading.title}</span>
+                </span>
+                <ChevronRight size={20} />
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {readings.length === 0 && legacyReadings.length === 0 ? (
+          <div className="panel p-6 text-[var(--muted)]">还没有已发布的历史内容。</div>
+        ) : null}
       </main>
     </>
   );
