@@ -178,7 +178,7 @@ function renderRoster() {
   renderAlumni();
 }
 
-function getFeaturedMemberIndexes(limit = 8) {
+function getFeaturedMemberIndexes(limit = 10) {
   const active = activeMembers();
   if (active.length <= limit) {
     return active.map((member) => members.indexOf(member));
