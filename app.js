@@ -1019,15 +1019,15 @@ function playHarborTone() {
 
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, ctx.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.13, ctx.currentTime + 1.6);
+  master.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 1.1);
   master.connect(ctx.destination);
 
   const delay = ctx.createDelay(5);
-  delay.delayTime.value = 0.48;
+  delay.delayTime.value = 0.31;
   const feedback = ctx.createGain();
-  feedback.gain.value = 0.34;
+  feedback.gain.value = 0.24;
   const wet = ctx.createGain();
-  wet.gain.value = 0.28;
+  wet.gain.value = 0.2;
   delay.connect(feedback);
   feedback.connect(delay);
   delay.connect(wet);
@@ -1045,18 +1045,20 @@ function playHarborTone() {
   wind.buffer = noiseBuffer;
   wind.loop = true;
   windFilter.type = "bandpass";
-  windFilter.frequency.value = 620;
+  windFilter.frequency.value = 760;
   windFilter.Q.value = 0.7;
-  windGain.gain.value = 0.018;
+  windGain.gain.value = 0.01;
   wind.connect(windFilter);
   windFilter.connect(windGain);
   windGain.connect(master);
   wind.start();
   musicNodes.push(master, delay, feedback, wet, wind, windFilter, windGain);
 
-  const scale = [146.83, 174.61, 196, 220, 261.63, 293.66, 349.23, 392];
-  const pluckPattern = [0, 2, 4, 2, 5, 3, 1, 0, 4, 5, 7, 5];
-  const flutePattern = [4, 5, 7, 5, 4, 2, 3, 4, 5, 4, 2, 0];
+  const beat = 0.46;
+  const bar = beat * 4;
+  const scale = [146.83, 164.81, 196, 220, 246.94, 293.66, 329.63, 392, 440];
+  const pluckPattern = [0, 2, 4, 5, 7, 5, 4, 2, 0, 4, 5, 8, 7, 5, 4, 2];
+  const flutePattern = [5, 7, 8, 7, 5, 4, 2, 4, 5, 4, 2, 0, 2, 4, 5, 7];
   let pluckStep = 0;
   let fluteStep = 0;
   let drumStep = 0;
@@ -1084,15 +1086,15 @@ function playHarborTone() {
     body.type = "triangle";
     body.frequency.setValueAtTime(frequency, when);
     overtone.type = "sine";
-    overtone.frequency.setValueAtTime(frequency * 2.01, when);
-    bodyGain.gain.value = accent ? 0.18 : 0.12;
-    overtoneGain.gain.value = accent ? 0.045 : 0.028;
+    overtone.frequency.setValueAtTime(frequency * 2.02, when);
+    bodyGain.gain.value = accent ? 0.2 : 0.13;
+    overtoneGain.gain.value = accent ? 0.06 : 0.036;
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(1480, when);
-    filter.frequency.exponentialRampToValueAtTime(520, when + 1.8);
+    filter.frequency.setValueAtTime(2400, when);
+    filter.frequency.exponentialRampToValueAtTime(760, when + 0.95);
     amp.gain.setValueAtTime(0.0001, when);
-    amp.gain.exponentialRampToValueAtTime(accent ? 0.18 : 0.11, when + 0.025);
-    amp.gain.exponentialRampToValueAtTime(0.0001, when + 2.9);
+    amp.gain.exponentialRampToValueAtTime(accent ? 0.16 : 0.1, when + 0.018);
+    amp.gain.exponentialRampToValueAtTime(0.0001, when + 1.12);
 
     body.connect(bodyGain);
     overtone.connect(overtoneGain);
@@ -1100,12 +1102,12 @@ function playHarborTone() {
     overtoneGain.connect(filter);
     filter.connect(amp);
     amp.connect(master);
-    sendToEcho(amp, accent ? 0.26 : 0.18);
+    sendToEcho(amp, accent ? 0.18 : 0.1);
 
     body.start(when);
     overtone.start(when);
-    body.stop(when + 3);
-    overtone.stop(when + 3);
+    body.stop(when + 1.24);
+    overtone.stop(when + 1.24);
     musicNodes.push(body, overtone, bodyGain, overtoneGain, filter, amp);
   };
 
@@ -1126,14 +1128,14 @@ function playHarborTone() {
     breath.type = "triangle";
     breath.frequency.setValueAtTime(frequency * 2, when);
     lfo.type = "sine";
-    lfo.frequency.setValueAtTime(5.2, when);
-    lfoGain.gain.setValueAtTime(9, when);
+    lfo.frequency.setValueAtTime(6.4, when);
+    lfoGain.gain.setValueAtTime(12, when);
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(1850, when);
+    filter.frequency.setValueAtTime(2200, when);
     amp.gain.setValueAtTime(0.0001, when);
-    amp.gain.linearRampToValueAtTime(0.055, when + 0.42);
-    amp.gain.setValueAtTime(0.052, when + 2.7);
-    amp.gain.exponentialRampToValueAtTime(0.0001, when + 3.8);
+    amp.gain.linearRampToValueAtTime(0.058, when + 0.08);
+    amp.gain.setValueAtTime(0.048, when + 0.64);
+    amp.gain.exponentialRampToValueAtTime(0.0001, when + 1.22);
 
     lfo.connect(lfoGain);
     lfoGain.connect(osc.detune);
@@ -1141,18 +1143,18 @@ function playHarborTone() {
     breath.connect(filter);
     filter.connect(amp);
     amp.connect(master);
-    sendToEcho(amp, 0.34);
+    sendToEcho(amp, 0.22);
 
     osc.start(when);
     breath.start(when);
     lfo.start(when);
-    osc.stop(when + 3.9);
-    breath.stop(when + 3.9);
-    lfo.stop(when + 3.9);
+    osc.stop(when + 1.28);
+    breath.stop(when + 1.28);
+    lfo.stop(when + 1.28);
     musicNodes.push(osc, breath, lfo, lfoGain, filter, amp);
   };
 
-  const playDrum = (when = ctx.currentTime) => {
+  const playDrum = (when = ctx.currentTime, accent = false) => {
     if (!musicOn || !audioContext) {
       return;
     }
@@ -1161,51 +1163,114 @@ function playHarborTone() {
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
     osc.type = "sine";
-    osc.frequency.setValueAtTime(78, when);
-    osc.frequency.exponentialRampToValueAtTime(42, when + 0.46);
+    osc.frequency.setValueAtTime(accent ? 96 : 82, when);
+    osc.frequency.exponentialRampToValueAtTime(accent ? 42 : 50, when + 0.32);
     filter.type = "lowpass";
-    filter.frequency.value = 180;
+    filter.frequency.value = 210;
     gain.gain.setValueAtTime(0.0001, when);
-    gain.gain.exponentialRampToValueAtTime(0.17, when + 0.018);
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.72);
+    gain.gain.exponentialRampToValueAtTime(accent ? 0.34 : 0.22, when + 0.014);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.46);
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(master);
     osc.start(when);
-    osc.stop(when + 0.8);
+    osc.stop(when + 0.5);
     musicNodes.push(osc, gain, filter);
   };
 
-  const playPluckPhrase = () => {
-    const now = ctx.currentTime;
-    const first = scale[pluckPattern[pluckStep % pluckPattern.length]];
-    const second = scale[pluckPattern[(pluckStep + 2) % pluckPattern.length]];
-    playPluck(first * (pluckStep % 6 === 0 ? 0.5 : 1), now, pluckStep % 4 === 0);
-    playPluck(second, now + 0.38, false);
-    pluckStep += 1;
-  };
-
-  const playFlutePhrase = () => {
-    const now = ctx.currentTime;
-    playFlute(scale[flutePattern[fluteStep % flutePattern.length]] * 2, now);
-    fluteStep += 1;
-  };
-
-  const playDrumPhrase = () => {
-    const now = ctx.currentTime;
-    playDrum(now);
-    if (drumStep % 2 === 0) {
-      playDrum(now + 0.52);
+  const playHandDrum = (when = ctx.currentTime, accent = false) => {
+    if (!musicOn || !audioContext) {
+      return;
     }
+
+    const hit = ctx.createBufferSource();
+    const body = ctx.createOscillator();
+    const hitFilter = ctx.createBiquadFilter();
+    const hitGain = ctx.createGain();
+    const bodyGain = ctx.createGain();
+    hit.buffer = noiseBuffer;
+    hitFilter.type = "bandpass";
+    hitFilter.frequency.value = accent ? 760 : 980;
+    hitFilter.Q.value = 3.6;
+    hitGain.gain.setValueAtTime(0.0001, when);
+    hitGain.gain.exponentialRampToValueAtTime(accent ? 0.16 : 0.1, when + 0.01);
+    hitGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.18);
+    body.type = "triangle";
+    body.frequency.setValueAtTime(accent ? 185 : 230, when);
+    body.frequency.exponentialRampToValueAtTime(120, when + 0.18);
+    bodyGain.gain.setValueAtTime(0.0001, when);
+    bodyGain.gain.exponentialRampToValueAtTime(accent ? 0.12 : 0.07, when + 0.012);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.2);
+    hit.connect(hitFilter);
+    hitFilter.connect(hitGain);
+    hitGain.connect(master);
+    body.connect(bodyGain);
+    bodyGain.connect(master);
+    hit.start(when);
+    body.start(when);
+    hit.stop(when + 0.22);
+    body.stop(when + 0.24);
+    musicNodes.push(hit, body, hitFilter, hitGain, bodyGain);
+  };
+
+  const playWoodblock = (when = ctx.currentTime) => {
+    if (!musicOn || !audioContext) {
+      return;
+    }
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(720, when);
+    osc.frequency.exponentialRampToValueAtTime(430, when + 0.08);
+    filter.type = "highpass";
+    filter.frequency.value = 360;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.048, when + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.13);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    osc.start(when);
+    osc.stop(when + 0.14);
+    musicNodes.push(osc, gain, filter);
+  };
+
+  const scheduleBar = () => {
+    const now = ctx.currentTime + 0.04;
+    for (let index = 0; index < 4; index += 1) {
+      const beatTime = now + index * beat;
+      playDrum(beatTime, index === 0);
+      playWoodblock(beatTime + beat * 0.5);
+      if (index === 1 || index === 3) {
+        playHandDrum(beatTime, true);
+      }
+      if (index === 2 && drumStep % 2 === 0) {
+        playDrum(beatTime + beat * 0.5, false);
+      }
+    }
+
+    for (let index = 0; index < 8; index += 1) {
+      const note = scale[pluckPattern[pluckStep % pluckPattern.length]];
+      const accent = index % 2 === 0;
+      playPluck(note * (index === 0 ? 0.5 : 1), now + index * beat * 0.5, accent);
+      pluckStep += 1;
+    }
+
+    if (drumStep % 2 === 0) {
+      [0, 1.25, 2.25, 3.1].forEach((offset) => {
+        const note = scale[flutePattern[fluteStep % flutePattern.length]];
+        playFlute(note * 2, now + offset * beat);
+        fluteStep += 1;
+      });
+    }
+
     drumStep += 1;
   };
 
-  playPluckPhrase();
-  playFlutePhrase();
-  playDrumPhrase();
-  musicTimers.push(window.setInterval(playPluckPhrase, 1880));
-  musicTimers.push(window.setInterval(playFlutePhrase, 7600));
-  musicTimers.push(window.setInterval(playDrumPhrase, 6800));
+  scheduleBar();
+  musicTimers.push(window.setInterval(scheduleBar, bar * 1000));
 }
 
 function stopHarborTone(markStopped = true) {
