@@ -11,7 +11,7 @@ create table if not exists public.members (
   slug text unique,
   name text not null,
   role text not null default '社众',
-  status text not null default 'pending' check (status in ('pending', 'active', 'alumni')),
+  status text not null default 'active' check (status in ('pending', 'active', 'alumni')),
   avatar text,
   portrait text,
   tags text[] not null default array[]::text[],
@@ -20,6 +20,10 @@ create table if not exists public.members (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.members
+alter column role set default '社众',
+alter column status set default 'active';
 
 create or replace function public.is_member_admin()
 returns boolean
@@ -61,8 +65,13 @@ begin
     return new;
   end if;
 
-  -- Ordinary members can edit profile text/images, but not review fields.
-  new.status = old.status;
+  -- Ordinary members can edit profile text/images. New/edited profiles auto-publish,
+  -- but members cannot move themselves into or out of the alumni archive.
+  if old.status = 'alumni' then
+    new.status = old.status;
+  elsif new.status not in ('active', 'pending') then
+    new.status = 'active';
+  end if;
   new.sort_order = old.sort_order;
   new.owner_id = old.owner_id;
   return new;
@@ -80,6 +89,26 @@ create trigger members_lock_review_fields
 before update on public.members
 for each row
 execute function public.lock_member_review_fields();
+
+update public.members
+set status = 'active'
+where status = 'pending';
+
+update public.members
+set name = '晟楊'
+where name = '晟杨';
+
+update public.members
+set role = '社众'
+where role = '港内成员';
+
+update public.members
+set sort_order = 0
+where name = '江都夷' and status <> 'alumni';
+
+update public.members
+set sort_order = 1
+where name = '晟楊' and status <> 'alumni';
 
 alter table public.members enable row level security;
 alter table public.member_admins enable row level security;
@@ -99,11 +128,12 @@ to authenticated
 using ((select auth.uid()) = owner_id);
 
 drop policy if exists "members can create own pending profile" on public.members;
-create policy "members can create own pending profile"
+drop policy if exists "members can create own active profile" on public.members;
+create policy "members can create own active profile"
 on public.members
 for insert
 to authenticated
-with check ((select auth.uid()) = owner_id and status = 'pending');
+with check ((select auth.uid()) = owner_id and status = 'active');
 
 drop policy if exists "members can update own profile" on public.members;
 create policy "members can update own profile"
