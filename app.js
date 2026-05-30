@@ -1054,11 +1054,11 @@ function playHarborTone() {
   wind.start();
   musicNodes.push(master, delay, feedback, wet, wind, windFilter, windGain);
 
-  const beat = 0.46;
+  const beat = 0.48;
   const bar = beat * 4;
-  const scale = [146.83, 164.81, 196, 220, 246.94, 293.66, 329.63, 392, 440];
-  const pluckPattern = [0, 2, 4, 5, 7, 5, 4, 2, 0, 4, 5, 8, 7, 5, 4, 2];
-  const flutePattern = [5, 7, 8, 7, 5, 4, 2, 4, 5, 4, 2, 0, 2, 4, 5, 7];
+  const scale = [146.83, 164.81, 185, 220, 246.94, 293.66, 329.63, 369.99, 440, 493.88];
+  const pluckPattern = [0, 3, 5, 6, 8, 6, 5, 3, 1, 3, 5, 8, 9, 8, 6, 5];
+  const flutePattern = [5, 6, 8, 7, 6, 5, 3, 5, 6, 8, 9, 8, 6, 5, 3, 1];
   let pluckStep = 0;
   let fluteStep = 0;
   let drumStep = 0;
@@ -1154,6 +1154,36 @@ function playHarborTone() {
     musicNodes.push(osc, breath, lfo, lfoGain, filter, amp);
   };
 
+  const playBassString = (frequency, when = ctx.currentTime, sustain = 1.8) => {
+    if (!musicOn || !audioContext) {
+      return;
+    }
+
+    const body = ctx.createOscillator();
+    const growl = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const amp = ctx.createGain();
+    body.type = "triangle";
+    growl.type = "sine";
+    body.frequency.setValueAtTime(frequency, when);
+    growl.frequency.setValueAtTime(frequency * 0.5, when);
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(420, when);
+    amp.gain.setValueAtTime(0.0001, when);
+    amp.gain.exponentialRampToValueAtTime(0.095, when + 0.035);
+    amp.gain.setValueAtTime(0.068, when + Math.max(0.08, sustain - 0.34));
+    amp.gain.exponentialRampToValueAtTime(0.0001, when + sustain);
+    body.connect(filter);
+    growl.connect(filter);
+    filter.connect(amp);
+    amp.connect(master);
+    body.start(when);
+    growl.start(when);
+    body.stop(when + sustain + 0.04);
+    growl.stop(when + sustain + 0.04);
+    musicNodes.push(body, growl, filter, amp);
+  };
+
   const playDrum = (when = ctx.currentTime, accent = false) => {
     if (!musicOn || !audioContext) {
       return;
@@ -1237,8 +1267,37 @@ function playHarborTone() {
     musicNodes.push(osc, gain, filter);
   };
 
+  const playCrash = (when = ctx.currentTime) => {
+    if (!musicOn || !audioContext) {
+      return;
+    }
+
+    const crash = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const amp = ctx.createGain();
+    crash.buffer = noiseBuffer;
+    filter.type = "highpass";
+    filter.frequency.value = 1600;
+    amp.gain.setValueAtTime(0.0001, when);
+    amp.gain.exponentialRampToValueAtTime(0.07, when + 0.018);
+    amp.gain.exponentialRampToValueAtTime(0.0001, when + 1.6);
+    crash.connect(filter);
+    filter.connect(amp);
+    amp.connect(master);
+    sendToEcho(amp, 0.18);
+    crash.start(when);
+    crash.stop(when + 1.7);
+    musicNodes.push(crash, filter, amp);
+  };
+
   const scheduleBar = () => {
     const now = ctx.currentTime + 0.04;
+    const root = scale[drumStep % 4 === 1 ? 1 : 0];
+    playBassString(root, now, bar * 0.94);
+    if (drumStep % 4 === 0) {
+      playCrash(now);
+    }
+
     for (let index = 0; index < 4; index += 1) {
       const beatTime = now + index * beat;
       playDrum(beatTime, index === 0);
@@ -1251,20 +1310,18 @@ function playHarborTone() {
       }
     }
 
-    for (let index = 0; index < 8; index += 1) {
+    for (let index = 0; index < 12; index += 1) {
       const note = scale[pluckPattern[pluckStep % pluckPattern.length]];
-      const accent = index % 2 === 0;
-      playPluck(note * (index === 0 ? 0.5 : 1), now + index * beat * 0.5, accent);
+      const accent = index % 3 === 0;
+      playPluck(note * (index === 0 || index === 8 ? 0.5 : 1), now + index * beat / 3, accent);
       pluckStep += 1;
     }
 
-    if (drumStep % 2 === 0) {
-      [0, 1.25, 2.25, 3.1].forEach((offset) => {
-        const note = scale[flutePattern[fluteStep % flutePattern.length]];
-        playFlute(note * 2, now + offset * beat);
-        fluteStep += 1;
-      });
-    }
+    [0, 0.75, 1.5, 2.5].forEach((offset, index) => {
+      const note = scale[flutePattern[(fluteStep + index) % flutePattern.length]];
+      playFlute(note * (offset === 2.5 && drumStep % 2 === 0 ? 4 : 2), now + offset * beat);
+    });
+    fluteStep += drumStep % 2 === 0 ? 5 : 3;
 
     drumStep += 1;
   };
