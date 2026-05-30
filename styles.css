@@ -263,7 +263,9 @@ h1 {
 .admin-close,
 .admin-add,
 .admin-actions button,
-.admin-publish button {
+.admin-publish button,
+.self-actions button,
+.self-form button {
   border: 1px solid rgba(201, 160, 77, 0.42);
   background: rgba(201, 160, 77, 0.12);
   color: var(--paper);
@@ -298,7 +300,9 @@ h1 {
 .admin-close:hover,
 .admin-add:hover,
 .admin-actions button:hover,
-.admin-publish button:hover {
+.admin-publish button:hover,
+.self-actions button:hover,
+.self-form button:hover {
   border-color: rgba(243, 213, 140, 0.82);
   background: rgba(201, 160, 77, 0.22);
   transform: translateY(-1px);
@@ -996,6 +1000,111 @@ h1 {
   background: rgba(0, 0, 0, 0.28);
 }
 
+.self-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 52;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(14px);
+}
+
+.self-panel.is-open {
+  display: flex;
+}
+
+.self-dialog {
+  width: min(920px, 96vw);
+  max-height: 90vh;
+  overflow: hidden;
+  border: 1px solid rgba(243, 213, 140, 0.32);
+  background:
+    linear-gradient(135deg, rgba(201, 160, 77, 0.12), transparent 42%),
+    rgba(10, 10, 9, 0.96);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.72);
+}
+
+.self-grid {
+  display: grid;
+  max-height: calc(90vh - 92px);
+  grid-template-columns: minmax(260px, 0.8fr) minmax(340px, 1.2fr);
+  gap: 16px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.self-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  border: 1px solid rgba(244, 240, 229, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 16px;
+}
+
+.self-card h4 {
+  margin: 0;
+  color: var(--gold-bright);
+  font-family: var(--font-title);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.self-card p,
+.self-card output {
+  margin: 0;
+  color: rgba(244, 240, 229, 0.68);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.self-card label {
+  display: grid;
+  gap: 6px;
+  color: rgba(244, 240, 229, 0.66);
+  font-size: 13px;
+}
+
+.self-card input,
+.self-card textarea {
+  width: 100%;
+  border: 1px solid rgba(244, 240, 229, 0.16);
+  background: rgba(0, 0, 0, 0.38);
+  color: var(--paper);
+  padding: 10px 11px;
+  outline: none;
+}
+
+.self-card textarea {
+  resize: vertical;
+}
+
+.self-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.self-actions button,
+.self-form button {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.self-card output {
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid rgba(244, 240, 229, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.self-form.is-disabled {
+  opacity: 0.62;
+}
+
 @keyframes drift {
   to {
     transform: translate3d(-94px, 94px, 0);
@@ -1104,8 +1213,13 @@ h1 {
     grid-template-columns: 1fr;
   }
 
+  .self-grid {
+    grid-template-columns: 1fr;
+  }
+
   .admin-files,
-  .admin-actions {
+  .admin-actions,
+  .self-actions {
     grid-template-columns: 1fr;
   }
 
