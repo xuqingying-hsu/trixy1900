@@ -12,7 +12,7 @@
     },
     {
       "id": "shengyang",
-      "name": "晟杨",
+      "name": "晟楊",
       "role": "副社主",
       "avatar": "assets/member-placeholder.png",
       "portrait": "",
@@ -23,7 +23,7 @@
     {
       "id": "member-001",
       "name": "待录入成员",
-      "role": "港内成员",
+      "role": "社众",
       "avatar": "assets/member-placeholder.png",
       "portrait": "",
       "status": "active",
@@ -33,7 +33,7 @@
     {
       "id": "member-002",
       "name": "待录入成员",
-      "role": "港内成员",
+      "role": "社众",
       "avatar": "assets/member-placeholder.png",
       "portrait": "",
       "status": "active",
