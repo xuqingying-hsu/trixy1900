@@ -1,6 +1,6 @@
 # 涅槃港云端成员自助上传配置
 
-这套配置把网页从“静态展示页”升级成“可登录、可上传、可审核”的成员名册。
+这套配置把网页从“静态展示页”升级成“可登录、可上传、自动公开”的成员名册。
 
 ## 1. 创建 Supabase 项目
 
@@ -23,9 +23,9 @@ window.NIRVANA_SUPABASE = {
 
 `anon public key` 可以放在前端；不要把 `service_role` key 放进网页或 GitHub。
 
-## 2. 设置你为审核管理员
+## 2. 设置你为管理员
 
-先在网页“成员自助”里用你的邮箱注册一次。然后在 Supabase 的 `Authentication -> Users` 找到你的 `User UID`，到 `SQL Editor` 执行：
+先在网页“名册管理”里用你的邮箱注册一次。然后在 Supabase 的 `Authentication -> Users` 找到你的 `User UID`，到 `SQL Editor` 执行：
 
 ```sql
 insert into public.member_admins (user_id)
@@ -33,7 +33,7 @@ values ('你的 User UID')
 on conflict do nothing;
 ```
 
-以后你可以在 Supabase 表格里把成员的 `status` 从 `pending` 改成：
+成员提交后会自动变成 `active` 并公开展示。以后你仍然可以在 Supabase 表格里把成员的 `status` 改成：
 
 - `active`：现役成员，会显示在主轮播和全员名册。
 - `alumni`：旧友成员，会显示在旧友录。
@@ -52,7 +52,7 @@ on conflict do nothing;
 
 ## 4. 成员如何使用
 
-成员打开网站，点“成员自助”，用邮箱注册或登录，填写游戏 ID、标签、短句并上传头像/角色展示图。首次保存后状态是 `pending`，你审核通过后才公开展示。
+成员打开网站，点“名册管理”，用邮箱注册或登录，填写游戏 ID、标签、短句并上传头像/角色展示图。保存后状态会自动变成 `active`，刷新网页后公开展示。
 
 ## 5. 域名 DNS
 
