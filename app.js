@@ -82,11 +82,14 @@ const selfAvatar = document.querySelector("#selfAvatar");
 const selfPortrait = document.querySelector("#selfPortrait");
 const selfSave = document.querySelector("#selfSave");
 const selfSaveStatus = document.querySelector("#selfSaveStatus");
+const siteBgm = document.querySelector("#siteBgm");
 let audioContext = null;
 let musicNodes = [];
 let musicTimers = [];
 let musicOn = false;
 let musicUnlocked = false;
+let bgmFileFailed = false;
+let bgmFileChecked = false;
 let adminIndex = 0;
 let directoryQuery = "";
 
@@ -1353,12 +1356,84 @@ function stopHarborTone(markStopped = true) {
   }
 }
 
-function startAutoplayBgm() {
-  playHarborTone();
+async function playBgmFile() {
+  if (!siteBgm || bgmFileFailed) {
+    return false;
+  }
 
-  const unlock = () => {
-    if (!musicOn) {
-      playHarborTone();
+  if (!bgmFileChecked) {
+    bgmFileChecked = true;
+    const source = siteBgm.dataset.src;
+    if (!source) {
+      bgmFileFailed = true;
+      return false;
+    }
+
+    try {
+      const response = await fetch(source, { method: "HEAD", cache: "no-store" });
+      if (!response.ok) {
+        bgmFileFailed = true;
+        return false;
+      }
+      siteBgm.src = source;
+    } catch (error) {
+      bgmFileFailed = true;
+      return false;
+    }
+  }
+
+  siteBgm.volume = 0.62;
+  siteBgm.loop = true;
+
+  try {
+    await siteBgm.play();
+    musicUnlocked = true;
+    musicOn = true;
+    return true;
+  } catch (error) {
+    if (error.name !== "NotAllowedError") {
+      bgmFileFailed = true;
+      return false;
+    }
+    musicUnlocked = false;
+    return false;
+  }
+}
+
+function startProceduralBgm() {
+  if (!musicOn || bgmFileFailed) {
+    playHarborTone();
+  }
+}
+
+function startAutoplayBgm() {
+  if (siteBgm) {
+    siteBgm.addEventListener("error", () => {
+      bgmFileFailed = true;
+      if (!musicOn) {
+        startProceduralBgm();
+      }
+    }, { once: true });
+  }
+
+  playBgmFile().then((played) => {
+    if (!played && bgmFileFailed) {
+      startProceduralBgm();
+    }
+  });
+
+  const unlock = async () => {
+    if (siteBgm && !bgmFileFailed) {
+      const played = await playBgmFile();
+      if (played) {
+        window.removeEventListener("pointerdown", unlock);
+        window.removeEventListener("keydown", unlock);
+        return;
+      }
+    }
+
+    if (!musicOn || bgmFileFailed) {
+      startProceduralBgm();
     }
 
     if (audioContext && audioContext.state === "suspended") {
@@ -1378,6 +1453,9 @@ function startAutoplayBgm() {
   window.addEventListener("pointerdown", unlock);
   window.addEventListener("keydown", unlock);
   document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && siteBgm && !bgmFileFailed && siteBgm.paused) {
+      playBgmFile().catch(() => {});
+    }
     if (!document.hidden && audioContext && audioContext.state === "suspended") {
       audioContext.resume().catch(() => {});
     }
@@ -1385,6 +1463,9 @@ function startAutoplayBgm() {
 }
 
 window.addEventListener("beforeunload", () => {
+  if (siteBgm) {
+    siteBgm.pause();
+  }
   if (musicOn) {
     stopHarborTone();
   }
