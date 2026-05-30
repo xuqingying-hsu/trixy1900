@@ -146,8 +146,28 @@ function normalizeMember(member) {
   };
 }
 
+function memberPinRank(member) {
+  if (member?.status === "alumni") {
+    return 10;
+  }
+  if (member?.name === "江都夷") {
+    return 0;
+  }
+  if (member?.name === "晟楊") {
+    return 1;
+  }
+  return 10;
+}
+
+function sortMembersForDisplay(memberList) {
+  return memberList
+    .map((member, index) => ({ member, index, rank: memberPinRank(member) }))
+    .sort((left, right) => left.rank - right.rank || left.index - right.index)
+    .map(({ member }) => member);
+}
+
 function normalizeMembers(memberList) {
-  return memberList.map(normalizeMember);
+  return sortMembersForDisplay(memberList.map(normalizeMember));
 }
 
 async function loadMembers() {
@@ -597,9 +617,9 @@ async function loadSelfProfile() {
   selfProfile = data;
   fillSelfForm();
   if (selfProfile) {
-    setSelfSaveStatus(selfProfile.status === "pending" ? "你的资料正在待审核。" : "你的资料已在云端保存。");
+    setSelfSaveStatus(selfProfile.status === "pending" ? "你的资料还在待审核；重新保存一次后会自动公开。" : "你的资料已在云端保存。");
   } else {
-    setSelfSaveStatus("还没有资料，填写后首次保存会进入待审核。");
+    setSelfSaveStatus("还没有资料，填写后保存会自动公开到名册。");
   }
 }
 
@@ -610,6 +630,11 @@ function fillSelfForm() {
   selfQuote.value = selfProfile?.quote || "";
   selfAvatar.value = "";
   selfPortrait.value = "";
+}
+
+function isAutoPublishPolicyError(error) {
+  const message = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`.toLowerCase();
+  return message.includes("policy") || message.includes("row-level security") || message.includes("violates");
 }
 
 async function signInSelf() {
@@ -738,25 +763,38 @@ async function saveSelfProfile(event) {
       slug: selfProfile?.slug || `${slugify(name)}-${selfSession.user.id.slice(0, 8)}`,
       name,
       role: normalizeMemberRole(selfRole.value),
-      status: selfProfile?.status || "pending",
+      status: selfProfile?.status === "alumni" ? "alumni" : "active",
       avatar,
       portrait,
       tags: parseTags(selfTags.value),
       quote: selfQuote.value.trim()
     };
 
-    const query = client.from(supabaseConfig.membersTable || "members");
-    const { data, error } = selfProfile?.id
-      ? await query.update(payload).eq("id", selfProfile.id).select().single()
-      : await query.insert(payload).select().single();
+    let usedPendingFallback = false;
+    let result = selfProfile?.id
+      ? await client.from(supabaseConfig.membersTable || "members").update(payload).eq("id", selfProfile.id).select().single()
+      : await client.from(supabaseConfig.membersTable || "members").insert(payload).select().single();
 
-    if (error) {
-      throw error;
+    if (result.error && !selfProfile?.id && payload.status === "active" && isAutoPublishPolicyError(result.error)) {
+      usedPendingFallback = true;
+      result = await client
+        .from(supabaseConfig.membersTable || "members")
+        .insert({ ...payload, status: "pending" })
+        .select()
+        .single();
     }
 
-    selfProfile = data;
+    if (result.error) {
+      throw result.error;
+    }
+
+    selfProfile = result.data;
     fillSelfForm();
-    setSelfSaveStatus(data.status === "pending" ? "已保存，等待社主审核后公开展示。" : "已保存，网页刷新后会同步最新资料。");
+    setSelfSaveStatus(
+      result.data.status === "pending"
+        ? (usedPendingFallback ? "已保存；数据库还未开启自动公开，请社主执行最新 SQL。" : "已保存；数据库规则更新后会自动公开。")
+        : "已保存，网页刷新后会同步最新资料。"
+    );
     await reloadCloudMembers();
   } catch (error) {
     console.error(error);
