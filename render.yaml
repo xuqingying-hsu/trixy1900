@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: acai-cosmic-station
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    region: singapore
+    autoDeploy: true
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.4-mini
+      - key: LENORMAND_DB_PATH
+        value: /app/data/lenormand.sqlite
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+    disk:
+      name: acai-cosmic-data
+      mountPath: /app/data
+      sizeGB: 1

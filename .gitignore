@@ -1,0 +1,10 @@
+.next/
+node_modules/
+data/
+.env
+.env*.local
+coverage/
+dist/
+tools/
+tunnel.log
+npm-debug.log*
