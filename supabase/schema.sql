@@ -10,7 +10,7 @@ create table if not exists public.members (
   owner_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
   slug text unique,
   name text not null,
-  role text not null default '港内成员',
+  role text not null default '社众',
   status text not null default 'pending' check (status in ('pending', 'active', 'alumni')),
   avatar text,
   portrait text,
