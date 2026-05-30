@@ -38,11 +38,23 @@ on conflict do nothing;
 - `active`：现役成员，会显示在主轮播和全员名册。
 - `alumni`：旧友成员，会显示在旧友录。
 
-## 3. 成员如何使用
+## 3. Auth 设置
+
+进入 `Authentication -> URL Configuration`：
+
+- `Site URL` 填你的正式网址，例如 `https://trixy1900.cn`。
+- `Redirect URLs` 加上 `https://trixy1900.cn/**` 和 `https://nirvana-harbor.github.io/trixy1900/**`。
+
+进入 `Authentication -> Providers -> Email`：
+
+- 确认 `Email provider` 和 `Sign ups` 是开启状态。
+- 如果没有配置 SMTP，测试阶段可以先关闭 `Confirm email`，否则注册时可能因为确认邮件发送失败而报错。
+
+## 4. 成员如何使用
 
 成员打开网站，点“成员自助”，用邮箱注册或登录，填写游戏 ID、标签、短句并上传头像/角色展示图。首次保存后状态是 `pending`，你审核通过后才公开展示。
 
-## 4. 域名 DNS
+## 5. 域名 DNS
 
 当前项目已添加 `CNAME` 文件，内容是：
 
