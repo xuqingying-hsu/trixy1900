@@ -10,7 +10,7 @@ const fallbackMembers = [
   },
   {
     id: "shengyang",
-    name: "晟杨",
+    name: "晟楊",
     role: "副社主",
     avatar: "assets/jiangduyi.png",
     portrait: "",
@@ -89,7 +89,9 @@ let musicTimers = [];
 let musicOn = false;
 let musicUnlocked = false;
 let bgmFileFailed = false;
-let bgmFileChecked = false;
+let bgmTrackIndex = 0;
+const bgmCheckedSources = new Set();
+const bgmFailedSources = new Set();
 let adminIndex = 0;
 let directoryQuery = "";
 
@@ -120,16 +122,44 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
+function normalizeMemberName(name) {
+  const value = typeof name === "string" ? name.trim() : "";
+  if (value === "晟杨") {
+    return "晟楊";
+  }
+  return value || "未命名成员";
+}
+
+function normalizeMemberRole(role) {
+  const value = typeof role === "string" ? role.trim() : "";
+  if (!value || value === "港内成员") {
+    return "社众";
+  }
+  return value;
+}
+
+function normalizeMember(member) {
+  return {
+    ...member,
+    name: normalizeMemberName(member?.name),
+    role: normalizeMemberRole(member?.role)
+  };
+}
+
+function normalizeMembers(memberList) {
+  return memberList.map(normalizeMember);
+}
+
 async function loadMembers() {
   try {
     const cloudMembers = await loadMembersFromSupabase();
     if (cloudMembers) {
-      return cloudMembers;
+      return normalizeMembers(cloudMembers);
     }
 
     const localMembers = readLocalMembers();
     if (localMembers) {
-      return localMembers;
+      return normalizeMembers(localMembers);
     }
 
     const response = await fetch("data/members.json", { cache: "no-store" });
@@ -138,10 +168,11 @@ async function loadMembers() {
     }
 
     const data = await response.json();
-    return Array.isArray(data.members) && data.members.length ? data.members : fallbackMembers;
+    const sourceMembers = Array.isArray(data.members) && data.members.length ? data.members : fallbackMembers;
+    return normalizeMembers(sourceMembers);
   } catch (error) {
     console.warn("Using built-in member data:", error);
-    return fallbackMembers;
+    return normalizeMembers(fallbackMembers);
   }
 }
 
@@ -170,7 +201,7 @@ function memberFromSupabase(row) {
   return {
     id: row.id,
     name: row.name || "未命名成员",
-    role: row.role || "港内成员",
+    role: row.role || "社众",
     avatar: row.avatar || placeholderImage,
     portrait: row.portrait || "",
     status: row.status || "active",
@@ -574,7 +605,7 @@ async function loadSelfProfile() {
 
 function fillSelfForm() {
   selfName.value = selfProfile?.name || "";
-  selfRole.value = selfProfile?.role || "港内成员";
+  selfRole.value = selfProfile?.role || "社众";
   selfTags.value = Array.isArray(selfProfile?.tags) ? selfProfile.tags.join("，") : "";
   selfQuote.value = selfProfile?.quote || "";
   selfAvatar.value = "";
@@ -706,7 +737,7 @@ async function saveSelfProfile(event) {
       owner_id: selfSession.user.id,
       slug: selfProfile?.slug || `${slugify(name)}-${selfSession.user.id.slice(0, 8)}`,
       name,
-      role: selfRole.value.trim() || "港内成员",
+      role: normalizeMemberRole(selfRole.value),
       status: selfProfile?.status || "pending",
       avatar,
       portrait,
@@ -802,7 +833,7 @@ function createBlankMember() {
   return {
     id: `member-${Date.now().toString(36)}`,
     name: "新成员",
-    role: "港内成员",
+    role: "社众",
     avatar: placeholderImage,
     portrait: "",
     status: "active",
@@ -816,7 +847,7 @@ function memberFromForm(existing) {
     ...existing,
     id: existing.id || slugify(adminName.value || "member"),
     name: adminName.value.trim(),
-    role: adminRole.value.trim(),
+    role: normalizeMemberRole(adminRole.value),
     status: adminStatusType.value,
     tags: parseTags(adminTags.value),
     quote: adminQuote.value.trim()
@@ -1356,34 +1387,77 @@ function stopHarborTone(markStopped = true) {
   }
 }
 
-async function playBgmFile() {
-  if (!siteBgm || bgmFileFailed) {
+function getBgmPlaylist() {
+  if (!siteBgm) {
+    return [];
+  }
+
+  const rawPlaylist = siteBgm.dataset.playlist || siteBgm.dataset.src || "";
+  return rawPlaylist
+    .split(",")
+    .map((source) => source.trim())
+    .filter(Boolean);
+}
+
+async function canUseBgmSource(source) {
+  if (bgmFailedSources.has(source)) {
+    return false;
+  }
+  if (bgmCheckedSources.has(source)) {
+    return true;
+  }
+
+  try {
+    const response = await fetch(source, { method: "HEAD", cache: "no-store" });
+    if (!response.ok) {
+      bgmFailedSources.add(source);
+      return false;
+    }
+    bgmCheckedSources.add(source);
+    return true;
+  } catch (error) {
+    bgmFailedSources.add(source);
+    return false;
+  }
+}
+
+async function prepareBgmTrack(startIndex = bgmTrackIndex) {
+  const playlist = getBgmPlaylist();
+  if (!siteBgm || !playlist.length) {
+    bgmFileFailed = true;
     return false;
   }
 
-  if (!bgmFileChecked) {
-    bgmFileChecked = true;
-    const source = siteBgm.dataset.src;
-    if (!source) {
-      bgmFileFailed = true;
-      return false;
-    }
-
-    try {
-      const response = await fetch(source, { method: "HEAD", cache: "no-store" });
-      if (!response.ok) {
-        bgmFileFailed = true;
-        return false;
+  for (let offset = 0; offset < playlist.length; offset += 1) {
+    const index = (startIndex + offset + playlist.length) % playlist.length;
+    const source = playlist[index];
+    if (await canUseBgmSource(source)) {
+      bgmTrackIndex = index;
+      if (!siteBgm.currentSrc.endsWith(source)) {
+        siteBgm.src = source;
       }
-      siteBgm.src = source;
-    } catch (error) {
-      bgmFileFailed = true;
-      return false;
+      siteBgm.dataset.currentTrack = source;
+      bgmFileFailed = false;
+      return true;
     }
   }
 
+  bgmFileFailed = true;
+  return false;
+}
+
+async function playBgmFile(startIndex = bgmTrackIndex) {
+  if (!siteBgm) {
+    return false;
+  }
+
+  const ready = await prepareBgmTrack(startIndex);
+  if (!ready) {
+    return false;
+  }
+
   siteBgm.volume = 0.62;
-  siteBgm.loop = true;
+  siteBgm.loop = false;
 
   try {
     await siteBgm.play();
@@ -1392,12 +1466,26 @@ async function playBgmFile() {
     return true;
   } catch (error) {
     if (error.name !== "NotAllowedError") {
-      bgmFileFailed = true;
-      return false;
+      bgmFailedSources.add(siteBgm.dataset.currentTrack || "");
+      return playBgmFile(bgmTrackIndex + 1);
     }
     musicUnlocked = false;
     return false;
   }
+}
+
+function playNextBgmTrack() {
+  const playlist = getBgmPlaylist();
+  if (!playlist.length) {
+    startProceduralBgm();
+    return;
+  }
+
+  playBgmFile((bgmTrackIndex + 1) % playlist.length).then((played) => {
+    if (!played && bgmFileFailed) {
+      startProceduralBgm();
+    }
+  });
 }
 
 function startProceduralBgm() {
@@ -1409,11 +1497,10 @@ function startProceduralBgm() {
 function startAutoplayBgm() {
   if (siteBgm) {
     siteBgm.addEventListener("error", () => {
-      bgmFileFailed = true;
-      if (!musicOn) {
-        startProceduralBgm();
-      }
-    }, { once: true });
+      bgmFailedSources.add(siteBgm.dataset.currentTrack || siteBgm.currentSrc);
+      playNextBgmTrack();
+    });
+    siteBgm.addEventListener("ended", playNextBgmTrack);
   }
 
   playBgmFile().then((played) => {
