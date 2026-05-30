@@ -1,7 +1,21 @@
-Wuxia2_Orchestra by PeriTune
-Source: https://peritune.com/blog/2018/10/13/wuxia2/
+Background music playlist by PeriTune
 Artist site: https://peritune.com/
 License: Creative Commons Attribution 4.0 International (CC BY 4.0)
 License URL: https://creativecommons.org/licenses/by/4.0/
+Changes: No changes were made to the original tracks.
+
+1. Wuxia2_Orchestra
+Source: https://peritune.com/blog/2018/10/13/wuxia2/
 Local file: assets/bgm.mp3
-Changes: No changes were made to the original track.
+
+2. Wuxia
+Source: https://peritune.com/blog/2018/06/24/wuxia/
+Local file: assets/bgm/wuxia.mp3
+
+3. Wuxia2_Guzheng_Pipa
+Source: https://peritune.com/blog/2018/10/13/wuxia2/
+Local file: assets/bgm/wuxia2-guzheng-pipa.mp3
+
+4. Wuxia3
+Source: https://peritune.com/blog/2021/05/22/wuxia3/
+Local file: assets/bgm/wuxia3.mp3
