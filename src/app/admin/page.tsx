@@ -156,11 +156,20 @@ export default async function AdminPage({
           >
             <input type="hidden" name="optionKey" value={option.option_key} />
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-2xl font-black">{option.option_key} 组</h2>
+              <div>
+                <h2 className="text-2xl font-black">{option.option_key} 组</h2>
+                <p className="mt-1 text-sm font-bold text-[var(--muted)]">
+                  {option.reviewed_at ? `已审核通过 · ${option.reviewed_at}` : "待审核：生成或编辑后需要审核通过"}
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button className="button secondary" name="intent" value="save" type="submit">
                   <Check size={18} />
                   保存
+                </button>
+                <button className="button secondary" name="intent" value="approve" type="submit">
+                  <Check size={18} />
+                  审核通过
                 </button>
                 <button className="button" name="intent" value="generate" type="submit">
                   <RefreshCw size={18} />

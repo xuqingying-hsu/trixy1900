@@ -6,6 +6,7 @@ import {
   ensureReading,
   getReading,
   getPublishedReading,
+  markReadingOptionReviewed,
   publishReading,
   resetDbForTests,
   setReadingOptionCount,
@@ -48,11 +49,48 @@ describe("reading publication flow", () => {
       });
     });
 
+    expect(() => publishReading(date)).toThrow(/审核通过/);
+
+    (["A", "B", "C"] as const).forEach((optionKey) => {
+      markReadingOptionReviewed(date, optionKey);
+    });
+
     publishReading(date);
     expect(getPublishedReading(date)?.status).toBe("published");
 
     unpublishReading(date);
     expect(getPublishedReading(date)).toBeNull();
+  });
+
+  it("returns a published reading to draft when an approved option is edited", () => {
+    const date = "2026-06-01";
+    ensureReading(date);
+    setReadingTopic(date, "近期事业会出现什么机会？");
+
+    (["A", "B", "C"] as const).forEach((optionKey) => {
+      updateReadingOption({
+        date,
+        optionKey,
+        optionTitle: `${optionKey} 组选项`,
+        cards: ["骑士", "心", "戒指"],
+        finalText: `${optionKey} 组完整解析。这里模拟一段已经编辑好的最终发布文案。`
+      });
+      markReadingOptionReviewed(date, optionKey);
+    });
+
+    publishReading(date);
+    expect(getPublishedReading(date)).not.toBeNull();
+
+    updateReadingOption({
+      date,
+      optionKey: "A",
+      optionTitle: "A 组选项",
+      cards: ["骑士", "心", "戒指"],
+      finalText: "A 组修改后的解析，需要重新审核。"
+    });
+
+    expect(getPublishedReading(date)).toBeNull();
+    expect(getReading(date)?.options.find((option) => option.option_key === "A")?.reviewed_at).toBeNull();
   });
 
   it("supports two to four public options per reading", () => {

@@ -9,6 +9,7 @@ import {
   createKnowledgeEntry,
   deleteKnowledgeEntry,
   ensureReading,
+  markReadingOptionReviewed,
   publishReading,
   saveOptionDraft,
   saveTopicSuggestions,
@@ -145,6 +146,18 @@ export async function optionFormAction(formData: FormData) {
     imageMimeType,
     imageAlt
   });
+
+  if (intent === "approve") {
+    try {
+      markReadingOptionReviewed(date, optionKey);
+      revalidatePath("/admin");
+      revalidatePath("/");
+      revalidatePath("/archive");
+      adminRedirect("/admin", `${optionKey} 组已审核通过。`);
+    } catch (error) {
+      adminRedirect("/admin", error instanceof Error ? error.message : "审核失败。");
+    }
+  }
 
   if (intent === "generate") {
     const reading = ensureReading(date);

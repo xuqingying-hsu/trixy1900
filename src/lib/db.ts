@@ -33,6 +33,7 @@ export type ReadingOption = {
   image_filename: string | null;
   image_mime_type: string | null;
   image_alt: string | null;
+  reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -118,6 +119,7 @@ function migrate(database: DatabaseSync) {
       image_filename TEXT,
       image_mime_type TEXT,
       image_alt TEXT,
+      reviewed_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(reading_date, option_key),
@@ -179,7 +181,8 @@ function ensureReadingOptionsSchema(database: DatabaseSync) {
     !table?.sql.includes("'D'") ||
     !columns.includes("image_filename") ||
     !columns.includes("image_mime_type") ||
-    !columns.includes("image_alt");
+    !columns.includes("image_alt") ||
+    !columns.includes("reviewed_at");
 
   if (!needsRebuild) {
     return;
@@ -188,6 +191,7 @@ function ensureReadingOptionsSchema(database: DatabaseSync) {
   const imageFilenameSelect = columns.includes("image_filename") ? "image_filename" : "NULL";
   const imageMimeTypeSelect = columns.includes("image_mime_type") ? "image_mime_type" : "NULL";
   const imageAltSelect = columns.includes("image_alt") ? "image_alt" : "NULL";
+  const reviewedAtSelect = columns.includes("reviewed_at") ? "reviewed_at" : "NULL";
 
   database.exec(`
     PRAGMA foreign_keys = OFF;
@@ -203,6 +207,7 @@ function ensureReadingOptionsSchema(database: DatabaseSync) {
       image_filename TEXT,
       image_mime_type TEXT,
       image_alt TEXT,
+      reviewed_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(reading_date, option_key),
@@ -220,6 +225,7 @@ function ensureReadingOptionsSchema(database: DatabaseSync) {
       image_filename,
       image_mime_type,
       image_alt,
+      reviewed_at,
       created_at,
       updated_at
     )
@@ -234,6 +240,7 @@ function ensureReadingOptionsSchema(database: DatabaseSync) {
       ${imageFilenameSelect},
       ${imageMimeTypeSelect},
       ${imageAltSelect},
+      ${reviewedAtSelect},
       created_at,
       updated_at
     FROM reading_options
@@ -354,12 +361,16 @@ export function setReadingTopic(date: string, topic: string) {
       "UPDATE topic_suggestions SET selected_topic = ? WHERE suggestion_date = ? AND id = (SELECT id FROM topic_suggestions WHERE suggestion_date = ? ORDER BY id DESC LIMIT 1)"
     )
     .run(topic, date, date);
+  clearOptionReviews(database, date);
 }
 
 export function setReadingOptionCount(date: string, optionCount: number) {
   ensureReading(date);
   const normalizedCount = normalizeOptionCount(optionCount);
   const database = getDb();
+  const existing = row<DailyReading>(
+    database.prepare("SELECT * FROM daily_readings WHERE date = ?").get(date)
+  );
   const keepKeys = optionKeysForCount(normalizedCount);
   const placeholders = keepKeys.map(() => "?").join(", ");
 
@@ -369,6 +380,9 @@ export function setReadingOptionCount(date: string, optionCount: number) {
     )
     .run(normalizedCount, date);
   ensureOptionRows(database, date, normalizedCount);
+  if (normalizeOptionCount(existing?.option_count) !== normalizedCount) {
+    clearOptionReviews(database, date);
+  }
 
   const removedOptions = rows<{ image_filename: string | null }>(
     database
@@ -389,6 +403,20 @@ export function setReadingOptionCount(date: string, optionCount: number) {
   return removedOptions.map((option) => option.image_filename).filter(Boolean) as string[];
 }
 
+function setReadingDraft(database: DatabaseSync, date: string) {
+  database
+    .prepare(
+      "UPDATE daily_readings SET status = 'draft', published_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE date = ?"
+    )
+    .run(date);
+}
+
+function clearOptionReviews(database: DatabaseSync, date: string) {
+  database
+    .prepare("UPDATE reading_options SET reviewed_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE reading_date = ?")
+    .run(date);
+}
+
 export function updateReadingOption(params: {
   date: string;
   optionKey: OptionKey;
@@ -403,7 +431,8 @@ export function updateReadingOption(params: {
   const existing = getReading(params.date)?.options.find(
     (option) => option.option_key === params.optionKey
   );
-  getDb()
+  const database = getDb();
+  database
     .prepare(
       `UPDATE reading_options
         SET option_title = ?,
@@ -412,6 +441,7 @@ export function updateReadingOption(params: {
             image_filename = ?,
             image_mime_type = ?,
             image_alt = ?,
+            reviewed_at = NULL,
             updated_at = CURRENT_TIMESTAMP
         WHERE reading_date = ? AND option_key = ?`
     )
@@ -425,6 +455,7 @@ export function updateReadingOption(params: {
       params.date,
       params.optionKey
     );
+  setReadingDraft(database, params.date);
 }
 
 export function saveOptionDraft(params: {
@@ -433,13 +464,32 @@ export function saveOptionDraft(params: {
   draftJson: string;
   finalText: string;
 }) {
-  getDb()
+  const database = getDb();
+  database
     .prepare(
       `UPDATE reading_options
-        SET ai_draft_json = ?, final_text = ?, updated_at = CURRENT_TIMESTAMP
+        SET ai_draft_json = ?, final_text = ?, reviewed_at = NULL, updated_at = CURRENT_TIMESTAMP
         WHERE reading_date = ? AND option_key = ?`
     )
     .run(params.draftJson, params.finalText, params.date, params.optionKey);
+  setReadingDraft(database, params.date);
+}
+
+export function markReadingOptionReviewed(date: string, optionKey: OptionKey) {
+  const reading = getReading(date);
+  const option = reading?.options.find((item) => item.option_key === optionKey);
+  if (!option) {
+    throw new Error("找不到要审核的组选项。");
+  }
+  if (!isPublishableOption(option.cards_json, option.final_text)) {
+    throw new Error("审核前请先补齐这一组的牌面和解析。");
+  }
+
+  getDb()
+    .prepare(
+      "UPDATE reading_options SET reviewed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE reading_date = ? AND option_key = ?"
+    )
+    .run(date, optionKey);
 }
 
 export function publishReading(date: string) {
@@ -455,6 +505,10 @@ export function publishReading(date: string) {
   );
   if (missing.length > 0) {
     throw new Error(`发布前请补齐 ${missing.map((option) => option.option_key).join("/")} 组牌面和解析。`);
+  }
+  const unreviewed = reading.options.filter((option) => !option.reviewed_at);
+  if (unreviewed.length > 0) {
+    throw new Error(`发布前请先审核通过 ${unreviewed.map((option) => option.option_key).join("/")} 组解析。`);
   }
 
   getDb()
