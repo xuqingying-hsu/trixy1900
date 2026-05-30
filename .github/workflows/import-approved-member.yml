@@ -1,0 +1,39 @@
+name: Import approved member submission
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to import
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: import-member-submission
+  cancel-in-progress: false
+
+jobs:
+  import:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'member-submission'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Import member
+        run: node .github/scripts/import-member-submission.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+
