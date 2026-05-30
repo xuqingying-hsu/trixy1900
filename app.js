@@ -83,13 +83,16 @@ const selfPortrait = document.querySelector("#selfPortrait");
 const selfSave = document.querySelector("#selfSave");
 const selfSaveStatus = document.querySelector("#selfSaveStatus");
 const siteBgm = document.querySelector("#siteBgm");
+const musicToggle = document.querySelector("#musicToggle");
 let audioContext = null;
 let musicNodes = [];
 let musicTimers = [];
 let musicOn = false;
 let musicUnlocked = false;
+let musicUserPaused = false;
 let bgmFileFailed = false;
 let bgmTrackIndex = 0;
+let lastMusicToggleAt = 0;
 const bgmCheckedSources = new Set();
 const bgmFailedSources = new Set();
 let adminIndex = 0;
@@ -1437,6 +1440,46 @@ function getBgmPlaylist() {
     .filter(Boolean);
 }
 
+function updateMusicToggle() {
+  if (!musicToggle || !siteBgm) {
+    return;
+  }
+
+  const isPlaying = !siteBgm.paused && !siteBgm.ended;
+  musicToggle.classList.toggle("is-playing", isPlaying);
+  musicToggle.textContent = isPlaying ? "Ⅱ" : "♪";
+  musicToggle.setAttribute("aria-label", isPlaying ? "暂停背景音乐" : "播放背景音乐");
+  musicToggle.title = isPlaying ? "暂停背景音乐" : "播放背景音乐";
+}
+
+function setBgmTrack(index) {
+  const playlist = getBgmPlaylist();
+  if (!siteBgm || !playlist.length) {
+    bgmFileFailed = true;
+    updateMusicToggle();
+    return false;
+  }
+
+  const nextIndex = (index + playlist.length) % playlist.length;
+  const source = playlist[nextIndex];
+  bgmTrackIndex = nextIndex;
+  bgmFileFailed = false;
+  if (!siteBgm.currentSrc.endsWith(source)) {
+    siteBgm.src = source;
+    siteBgm.load();
+  }
+  siteBgm.dataset.currentTrack = source;
+  updateMusicToggle();
+  return true;
+}
+
+function primeBgmTrack() {
+  if (!siteBgm || siteBgm.currentSrc) {
+    return;
+  }
+  setBgmTrack(bgmTrackIndex);
+}
+
 async function canUseBgmSource(source) {
   if (bgmFailedSources.has(source)) {
     return false;
@@ -1470,13 +1513,7 @@ async function prepareBgmTrack(startIndex = bgmTrackIndex) {
     const index = (startIndex + offset + playlist.length) % playlist.length;
     const source = playlist[index];
     if (await canUseBgmSource(source)) {
-      bgmTrackIndex = index;
-      if (!siteBgm.currentSrc.endsWith(source)) {
-        siteBgm.src = source;
-      }
-      siteBgm.dataset.currentTrack = source;
-      bgmFileFailed = false;
-      return true;
+      return setBgmTrack(index);
     }
   }
 
@@ -1484,12 +1521,13 @@ async function prepareBgmTrack(startIndex = bgmTrackIndex) {
   return false;
 }
 
-async function playBgmFile(startIndex = bgmTrackIndex) {
+async function playBgmFile(startIndex = bgmTrackIndex, options = {}) {
   if (!siteBgm) {
     return false;
   }
 
-  const ready = await prepareBgmTrack(startIndex);
+  const playlist = getBgmPlaylist();
+  const ready = options.immediate ? setBgmTrack(startIndex) : await prepareBgmTrack(startIndex);
   if (!ready) {
     return false;
   }
@@ -1501,15 +1539,66 @@ async function playBgmFile(startIndex = bgmTrackIndex) {
     await siteBgm.play();
     musicUnlocked = true;
     musicOn = true;
+    updateMusicToggle();
     return true;
   } catch (error) {
     if (error.name !== "NotAllowedError") {
       bgmFailedSources.add(siteBgm.dataset.currentTrack || "");
-      return playBgmFile(bgmTrackIndex + 1);
+      if (bgmFailedSources.size < playlist.length) {
+        return playBgmFile(bgmTrackIndex + 1, options);
+      }
+      bgmFileFailed = true;
+      updateMusicToggle();
+      return false;
     }
     musicUnlocked = false;
+    updateMusicToggle();
     return false;
   }
+}
+
+async function startBgmFromUserGesture() {
+  musicUserPaused = false;
+  bgmFileFailed = false;
+  const played = await playBgmFile(bgmTrackIndex, { immediate: true });
+  if (!played && bgmFileFailed) {
+    startProceduralBgm();
+  }
+  updateMusicToggle();
+  return played;
+}
+
+function pauseBgmFile() {
+  if (siteBgm) {
+    siteBgm.pause();
+  }
+  musicOn = false;
+  updateMusicToggle();
+}
+
+function toggleBgm() {
+  if (!siteBgm) {
+    startProceduralBgm();
+    return;
+  }
+
+  if (!siteBgm.paused && !siteBgm.ended) {
+    musicUserPaused = true;
+    pauseBgmFile();
+    return;
+  }
+
+  startBgmFromUserGesture();
+}
+
+function handleMusicToggle(event) {
+  event?.stopPropagation();
+  const now = Date.now();
+  if (now - lastMusicToggleAt < 420) {
+    return;
+  }
+  lastMusicToggleAt = now;
+  toggleBgm();
 }
 
 function playNextBgmTrack() {
@@ -1530,15 +1619,20 @@ function startProceduralBgm() {
   if (!musicOn || bgmFileFailed) {
     playHarborTone();
   }
+  updateMusicToggle();
 }
 
 function startAutoplayBgm() {
   if (siteBgm) {
+    primeBgmTrack();
     siteBgm.addEventListener("error", () => {
       bgmFailedSources.add(siteBgm.dataset.currentTrack || siteBgm.currentSrc);
       playNextBgmTrack();
     });
     siteBgm.addEventListener("ended", playNextBgmTrack);
+    siteBgm.addEventListener("play", updateMusicToggle);
+    siteBgm.addEventListener("pause", updateMusicToggle);
+    siteBgm.addEventListener("loadedmetadata", updateMusicToggle);
   }
 
   playBgmFile().then((played) => {
@@ -1548,10 +1642,16 @@ function startAutoplayBgm() {
   });
 
   const unlock = async () => {
-    if (siteBgm && !bgmFileFailed) {
-      const played = await playBgmFile();
+    if (musicUserPaused) {
+      return;
+    }
+
+    if (siteBgm) {
+      const played = await startBgmFromUserGesture();
       if (played) {
         window.removeEventListener("pointerdown", unlock);
+        window.removeEventListener("touchstart", unlock);
+        window.removeEventListener("click", unlock);
         window.removeEventListener("keydown", unlock);
         return;
       }
@@ -1571,20 +1671,25 @@ function startAutoplayBgm() {
 
     if (musicUnlocked || (audioContext && audioContext.state === "running")) {
       window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("click", unlock);
       window.removeEventListener("keydown", unlock);
     }
   };
 
-  window.addEventListener("pointerdown", unlock);
+  window.addEventListener("pointerdown", unlock, { passive: true });
+  window.addEventListener("touchstart", unlock, { passive: true });
+  window.addEventListener("click", unlock, { passive: true });
   window.addEventListener("keydown", unlock);
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && siteBgm && !bgmFileFailed && siteBgm.paused) {
+    if (!document.hidden && !musicUserPaused && siteBgm && !bgmFileFailed && siteBgm.paused) {
       playBgmFile().catch(() => {});
     }
     if (!document.hidden && audioContext && audioContext.state === "suspended") {
       audioContext.resume().catch(() => {});
     }
   });
+  updateMusicToggle();
 }
 
 window.addEventListener("beforeunload", () => {
@@ -1613,6 +1718,11 @@ selfLogin?.addEventListener("click", signInSelf);
 selfSignup?.addEventListener("click", signUpSelf);
 selfLogout?.addEventListener("click", signOutSelf);
 selfForm?.addEventListener("submit", saveSelfProfile);
+musicToggle?.addEventListener("pointerdown", (event) => event.stopPropagation());
+musicToggle?.addEventListener("touchstart", (event) => event.stopPropagation(), { passive: true });
+musicToggle?.addEventListener("pointerup", handleMusicToggle);
+musicToggle?.addEventListener("touchend", handleMusicToggle, { passive: true });
+musicToggle?.addEventListener("click", handleMusicToggle);
 adminOpen?.addEventListener("click", openAdmin);
 directoryOpen.addEventListener("click", openDirectory);
 directoryClose.addEventListener("click", closeDirectory);
