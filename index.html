@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>燕云十六声 · 涅槃港</title>
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -37,6 +39,7 @@
             target="_blank"
             rel="noreferrer"
           >成员投稿</a>
+          <button class="admin-open" id="selfOpen" type="button">成员自助</button>
           <button class="admin-open" id="adminOpen" type="button">名册管理</button>
         </section>
       </header>
@@ -171,6 +174,71 @@
               <button id="adminPublish" type="button">发布到 GitHub</button>
               <output id="adminStatus">等待操作</output>
             </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="self-panel" id="selfPanel" aria-hidden="true">
+        <div class="self-dialog" role="dialog" aria-modal="true" aria-labelledby="selfTitle">
+          <header class="admin-head">
+            <div>
+              <p class="eyebrow">涅槃港云端名册</p>
+              <h3 id="selfTitle">成员自助上传</h3>
+            </div>
+            <button class="admin-close" id="selfClose" type="button" aria-label="关闭成员自助上传">×</button>
+          </header>
+
+          <div class="self-grid">
+            <section class="self-card">
+              <h4>登录</h4>
+              <p>成员用自己的邮箱注册或登录后，可以维护自己的游戏 ID、角色短句和角色图。</p>
+              <label>
+                邮箱
+                <input id="selfEmail" type="email" autocomplete="email" placeholder="name@example.com" />
+              </label>
+              <label>
+                密码
+                <input id="selfPassword" type="password" autocomplete="current-password" placeholder="至少 6 位" />
+              </label>
+              <div class="self-actions">
+                <button id="selfLogin" type="button">登录</button>
+                <button id="selfSignup" type="button">注册</button>
+                <button id="selfLogout" type="button">退出</button>
+              </div>
+              <output id="selfAuthStatus">等待连接云端后台</output>
+            </section>
+
+            <form class="self-card self-form" id="selfForm">
+              <h4>我的角色资料</h4>
+              <label>
+                游戏 ID
+                <input id="selfName" name="name" type="text" required placeholder="例如：江都夷" />
+              </label>
+              <label>
+                职位 / 备注
+                <input id="selfRole" name="role" type="text" placeholder="例如：港内成员" />
+              </label>
+              <label>
+                标签
+                <input id="selfTags" name="tags" type="text" placeholder="用逗号分隔，例如：输出,外观党,涅槃港" />
+              </label>
+              <label>
+                角色短句
+                <textarea id="selfQuote" name="quote" rows="3" placeholder="一句想放在网页上的话"></textarea>
+              </label>
+              <div class="admin-files">
+                <label>
+                  头像图
+                  <input id="selfAvatar" name="avatar" type="file" accept="image/*" />
+                </label>
+                <label>
+                  角色展示图
+                  <input id="selfPortrait" name="portrait" type="file" accept="image/*" />
+                </label>
+              </div>
+              <button id="selfSave" type="submit">保存到云端</button>
+              <output id="selfSaveStatus">首次提交后会进入待审核，审核通过才会出现在大屏。</output>
+            </form>
           </div>
         </div>
       </section>
