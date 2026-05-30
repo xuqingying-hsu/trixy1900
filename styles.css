@@ -259,7 +259,6 @@ h1 {
 }
 
 .admin-open,
-.submission-link,
 .admin-close,
 .admin-add,
 .admin-actions button,
@@ -285,18 +284,7 @@ h1 {
   font-size: 13px;
 }
 
-.submission-link {
-  display: inline-grid;
-  align-self: stretch;
-  place-items: center;
-  padding: 0 14px;
-  color: var(--paper);
-  font-size: 13px;
-  text-decoration: none;
-}
-
 .admin-open:hover,
-.submission-link:hover,
 .admin-close:hover,
 .admin-add:hover,
 .admin-actions button:hover,
@@ -1189,10 +1177,6 @@ h1 {
   }
 
   .admin-open {
-    min-height: 42px;
-  }
-
-  .submission-link {
     min-height: 42px;
   }
 
