@@ -3,6 +3,12 @@ import { dirname, isAbsolute, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { todayKey } from "@/lib/dates";
 import { isPublishableOption, type LenormandCard } from "@/lib/lenormand";
+import {
+  DEFAULT_OPTION_COUNT,
+  type OptionKey,
+  optionKeysForCount,
+  normalizeOptionCount
+} from "@/lib/options";
 
 export type ReadingStatus = "draft" | "published";
 
@@ -10,6 +16,7 @@ export type DailyReading = {
   date: string;
   topic: string;
   status: ReadingStatus;
+  option_count: number;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -18,11 +25,14 @@ export type DailyReading = {
 export type ReadingOption = {
   id: number;
   reading_date: string;
-  option_key: "A" | "B" | "C";
+  option_key: OptionKey;
   option_title: string;
   cards_json: string;
   ai_draft_json: string | null;
   final_text: string;
+  image_filename: string | null;
+  image_mime_type: string | null;
+  image_alt: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -90,6 +100,7 @@ function migrate(database: DatabaseSync) {
     CREATE TABLE IF NOT EXISTS daily_readings (
       date TEXT PRIMARY KEY,
       topic TEXT NOT NULL DEFAULT '',
+      option_count INTEGER NOT NULL DEFAULT 3,
       status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
       published_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,11 +110,14 @@ function migrate(database: DatabaseSync) {
     CREATE TABLE IF NOT EXISTS reading_options (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       reading_date TEXT NOT NULL,
-      option_key TEXT NOT NULL CHECK (option_key IN ('A', 'B', 'C')),
+      option_key TEXT NOT NULL CHECK (option_key IN ('A', 'B', 'C', 'D')),
       option_title TEXT NOT NULL DEFAULT '',
       cards_json TEXT NOT NULL DEFAULT '[]',
       ai_draft_json TEXT,
       final_text TEXT NOT NULL DEFAULT '',
+      image_filename TEXT,
+      image_mime_type TEXT,
+      image_alt TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(reading_date, option_key),
@@ -134,6 +148,101 @@ function migrate(database: DatabaseSync) {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `);
+  ensureDailyReadingsColumns(database);
+  ensureReadingOptionsSchema(database);
+}
+
+function tableColumns(database: DatabaseSync, tableName: string) {
+  return rows<{ name: string }>(database.prepare(`PRAGMA table_info(${tableName})`).all()).map(
+    (column) => column.name
+  );
+}
+
+function hasColumn(database: DatabaseSync, tableName: string, columnName: string) {
+  return tableColumns(database, tableName).includes(columnName);
+}
+
+function ensureDailyReadingsColumns(database: DatabaseSync) {
+  if (!hasColumn(database, "daily_readings", "option_count")) {
+    database.exec("ALTER TABLE daily_readings ADD COLUMN option_count INTEGER NOT NULL DEFAULT 3;");
+  }
+}
+
+function ensureReadingOptionsSchema(database: DatabaseSync) {
+  const table = row<{ sql: string }>(
+    database
+      .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'reading_options'")
+      .get()
+  );
+  const columns = tableColumns(database, "reading_options");
+  const needsRebuild =
+    !table?.sql.includes("'D'") ||
+    !columns.includes("image_filename") ||
+    !columns.includes("image_mime_type") ||
+    !columns.includes("image_alt");
+
+  if (!needsRebuild) {
+    return;
+  }
+
+  const imageFilenameSelect = columns.includes("image_filename") ? "image_filename" : "NULL";
+  const imageMimeTypeSelect = columns.includes("image_mime_type") ? "image_mime_type" : "NULL";
+  const imageAltSelect = columns.includes("image_alt") ? "image_alt" : "NULL";
+
+  database.exec(`
+    PRAGMA foreign_keys = OFF;
+
+    CREATE TABLE reading_options_next (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reading_date TEXT NOT NULL,
+      option_key TEXT NOT NULL CHECK (option_key IN ('A', 'B', 'C', 'D')),
+      option_title TEXT NOT NULL DEFAULT '',
+      cards_json TEXT NOT NULL DEFAULT '[]',
+      ai_draft_json TEXT,
+      final_text TEXT NOT NULL DEFAULT '',
+      image_filename TEXT,
+      image_mime_type TEXT,
+      image_alt TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(reading_date, option_key),
+      FOREIGN KEY(reading_date) REFERENCES daily_readings(date) ON DELETE CASCADE
+    );
+
+    INSERT INTO reading_options_next (
+      id,
+      reading_date,
+      option_key,
+      option_title,
+      cards_json,
+      ai_draft_json,
+      final_text,
+      image_filename,
+      image_mime_type,
+      image_alt,
+      created_at,
+      updated_at
+    )
+    SELECT
+      id,
+      reading_date,
+      option_key,
+      option_title,
+      cards_json,
+      ai_draft_json,
+      final_text,
+      ${imageFilenameSelect},
+      ${imageMimeTypeSelect},
+      ${imageAltSelect},
+      created_at,
+      updated_at
+    FROM reading_options
+    WHERE option_key IN ('A', 'B', 'C', 'D');
+
+    DROP TABLE reading_options;
+    ALTER TABLE reading_options_next RENAME TO reading_options;
+    PRAGMA foreign_keys = ON;
+  `);
 }
 
 function row<T>(value: unknown) {
@@ -148,11 +257,24 @@ export function ensureReading(date = todayKey()): ReadingWithOptions {
   const database = getDb();
   database
     .prepare(
-      "INSERT OR IGNORE INTO daily_readings (date, topic, status) VALUES (?, '', 'draft')"
+      "INSERT OR IGNORE INTO daily_readings (date, topic, option_count, status) VALUES (?, '', ?, 'draft')"
     )
-    .run(date);
+    .run(date, DEFAULT_OPTION_COUNT);
 
-  (["A", "B", "C"] as const).forEach((key) => {
+  const readingRow = row<DailyReading>(
+    database.prepare("SELECT * FROM daily_readings WHERE date = ?").get(date)
+  );
+  ensureOptionRows(database, date, normalizeOptionCount(readingRow?.option_count));
+
+  const reading = getReading(date);
+  if (!reading) {
+    throw new Error("初始化每日占卜失败。");
+  }
+  return reading;
+}
+
+function ensureOptionRows(database: DatabaseSync, date: string, optionCount: number) {
+  optionKeysForCount(optionCount).forEach((key) => {
     database
       .prepare(
         `INSERT OR IGNORE INTO reading_options
@@ -161,12 +283,6 @@ export function ensureReading(date = todayKey()): ReadingWithOptions {
       )
       .run(date, key, `${key} 组选项`);
   });
-
-  const reading = getReading(date);
-  if (!reading) {
-    throw new Error("初始化每日占卜失败。");
-  }
-  return reading;
 }
 
 export function getReading(date: string) {
@@ -179,11 +295,12 @@ export function getReading(date: string) {
     return null;
   }
 
+  const optionKeys = new Set(optionKeysForCount(reading.option_count));
   const options = rows<ReadingOption>(
     database
       .prepare("SELECT * FROM reading_options WHERE reading_date = ? ORDER BY option_key")
       .all(date)
-  );
+  ).filter((option) => optionKeys.has(option.option_key));
 
   return { ...reading, options };
 }
@@ -239,24 +356,72 @@ export function setReadingTopic(date: string, topic: string) {
     .run(topic, date, date);
 }
 
+export function setReadingOptionCount(date: string, optionCount: number) {
+  ensureReading(date);
+  const normalizedCount = normalizeOptionCount(optionCount);
+  const database = getDb();
+  const keepKeys = optionKeysForCount(normalizedCount);
+  const placeholders = keepKeys.map(() => "?").join(", ");
+
+  database
+    .prepare(
+      "UPDATE daily_readings SET option_count = ?, status = 'draft', published_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE date = ?"
+    )
+    .run(normalizedCount, date);
+  ensureOptionRows(database, date, normalizedCount);
+
+  const removedOptions = rows<{ image_filename: string | null }>(
+    database
+      .prepare(
+        `SELECT image_filename FROM reading_options
+         WHERE reading_date = ? AND option_key NOT IN (${placeholders})`
+      )
+      .all(date, ...keepKeys)
+  );
+
+  database
+    .prepare(
+      `DELETE FROM reading_options
+       WHERE reading_date = ? AND option_key NOT IN (${placeholders})`
+    )
+    .run(date, ...keepKeys);
+
+  return removedOptions.map((option) => option.image_filename).filter(Boolean) as string[];
+}
+
 export function updateReadingOption(params: {
   date: string;
-  optionKey: "A" | "B" | "C";
+  optionKey: OptionKey;
   optionTitle: string;
   cards: LenormandCard[];
   finalText: string;
+  imageFilename?: string | null;
+  imageMimeType?: string | null;
+  imageAlt?: string | null;
 }) {
   ensureReading(params.date);
+  const existing = getReading(params.date)?.options.find(
+    (option) => option.option_key === params.optionKey
+  );
   getDb()
     .prepare(
       `UPDATE reading_options
-        SET option_title = ?, cards_json = ?, final_text = ?, updated_at = CURRENT_TIMESTAMP
+        SET option_title = ?,
+            cards_json = ?,
+            final_text = ?,
+            image_filename = ?,
+            image_mime_type = ?,
+            image_alt = ?,
+            updated_at = CURRENT_TIMESTAMP
         WHERE reading_date = ? AND option_key = ?`
     )
     .run(
       params.optionTitle,
       JSON.stringify(params.cards),
       params.finalText,
+      params.imageFilename === undefined ? existing?.image_filename ?? null : params.imageFilename,
+      params.imageMimeType === undefined ? existing?.image_mime_type ?? null : params.imageMimeType,
+      params.imageAlt === undefined ? existing?.image_alt ?? null : params.imageAlt,
       params.date,
       params.optionKey
     );
@@ -264,7 +429,7 @@ export function updateReadingOption(params: {
 
 export function saveOptionDraft(params: {
   date: string;
-  optionKey: "A" | "B" | "C";
+  optionKey: OptionKey;
   draftJson: string;
   finalText: string;
 }) {

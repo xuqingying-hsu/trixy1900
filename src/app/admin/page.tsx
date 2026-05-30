@@ -1,11 +1,22 @@
 import Link from "next/link";
-import { Check, LogOut, MessageSquareText, PencilLine, RefreshCw, Send, Sparkles, Trash2 } from "lucide-react";
+import Image from "next/image";
+import {
+  Check,
+  LogOut,
+  MessageSquareText,
+  PencilLine,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Trash2
+} from "lucide-react";
 import {
   generateTopicsAction,
   logoutAction,
   optionFormAction,
   publishAction,
   selectTopicAction,
+  setOptionCountAction,
   unpublishAction
 } from "@/app/admin/actions";
 import { isUsingDefaultAdminPassword, requireAdmin } from "@/lib/auth";
@@ -33,6 +44,10 @@ function draftSummary(aiDraftJson: string | null) {
   } catch {
     return "已有 AI 草稿。";
   }
+}
+
+function optionImageSrc(date: string, optionKey: string) {
+  return `/reading-images/${encodeURIComponent(date)}/${encodeURIComponent(optionKey)}`;
 }
 
 export default async function AdminPage({
@@ -99,6 +114,21 @@ export default async function AdminPage({
           </form>
         </div>
 
+        <form action={setOptionCountAction} className="flex flex-wrap items-end gap-3">
+          <label className="w-full max-w-44">
+            <span className="label">今日组选项数量</span>
+            <select className="field" name="optionCount" defaultValue={reading.option_count}>
+              <option value="2">2 组</option>
+              <option value="3">3 组</option>
+              <option value="4">4 组</option>
+            </select>
+          </label>
+          <button className="button secondary" type="submit">
+            <Check size={18} />
+            更新组选项
+          </button>
+        </form>
+
         {topics.length > 0 ? (
           <div className="grid gap-3">
             {topics.map((topic) => (
@@ -118,7 +148,12 @@ export default async function AdminPage({
 
       <section className="mb-6 grid gap-5">
         {reading.options.map((option) => (
-          <form key={option.option_key} action={optionFormAction} className="panel grid gap-4 p-5">
+          <form
+            key={option.option_key}
+            action={optionFormAction}
+            className="panel grid gap-4 p-5"
+            encType="multipart/form-data"
+          >
             <input type="hidden" name="optionKey" value={option.option_key} />
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-2xl font-black">{option.option_key} 组</h2>
@@ -144,6 +179,51 @@ export default async function AdminPage({
               <span className="label">选项标题</span>
               <input className="field" name="optionTitle" defaultValue={option.option_title} />
             </label>
+            <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+              <div>
+                <span className="label">当前指示物</span>
+                {option.image_filename ? (
+                  <span className="admin-option-image">
+                    <Image
+                      src={optionImageSrc(date, option.option_key)}
+                      alt={option.image_alt || `${option.option_key} 组指示物`}
+                      fill
+                      sizes="180px"
+                      unoptimized
+                    />
+                  </span>
+                ) : (
+                  <div className="admin-option-image-empty">
+                    <span className="card-back h-24 w-16" aria-hidden="true" />
+                  </div>
+                )}
+              </div>
+              <div className="grid content-start gap-3">
+                <label>
+                  <span className="label">上传/替换指示物图片（JPG、PNG、WEBP，最大 5MB）</span>
+                  <input
+                    className="field"
+                    name="indicatorImage"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                  />
+                </label>
+                <label>
+                  <span className="label">图片描述（可选，用于无障碍说明）</span>
+                  <input
+                    className="field"
+                    name="imageAlt"
+                    defaultValue={option.image_alt || `${option.option_key} 组指示物`}
+                  />
+                </label>
+                {option.image_filename ? (
+                  <label className="flex items-center gap-2 text-sm font-bold text-[var(--muted)]">
+                    <input type="checkbox" name="deleteImage" value="1" />
+                    删除当前指示物图片
+                  </label>
+                ) : null}
+              </div>
+            </div>
             <label>
               <span className="label">牌面，每行一张或用逗号分隔，支持 1-9 张</span>
               <textarea className="field min-h-28" name="cards" defaultValue={cardsText(option.cards_json)} />

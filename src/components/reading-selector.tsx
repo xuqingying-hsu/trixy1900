@@ -1,13 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Image from "next/image";
+import { type CSSProperties, useMemo, useState } from "react";
 
 type PublicOption = {
-  option_key: "A" | "B" | "C";
+  reading_date: string;
+  option_key: "A" | "B" | "C" | "D";
   option_title: string;
   cards_json: string;
   final_text: string;
+  image_filename: string | null;
+  image_alt: string | null;
 };
+
+function optionImageSrc(option: PublicOption) {
+  return `/reading-images/${encodeURIComponent(option.reading_date)}/${encodeURIComponent(option.option_key)}`;
+}
 
 export function ReadingSelector({ options }: { options: PublicOption[] }) {
   const [selected, setSelected] = useState(options[0]?.option_key ?? "A");
@@ -22,7 +30,10 @@ export function ReadingSelector({ options }: { options: PublicOption[] }) {
 
   return (
     <section className="grid gap-5">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div
+        className="option-grid grid gap-3"
+        style={{ "--option-count": Math.min(options.length, 4) } as CSSProperties}
+      >
         {options.map((option) => {
           const active = option.option_key === selected;
           return (
@@ -36,7 +47,20 @@ export function ReadingSelector({ options }: { options: PublicOption[] }) {
             >
               <span className="flex items-center justify-between gap-3">
                 <span className="text-2xl font-black">{option.option_key}</span>
-                <span className="card-back h-14 w-10" aria-hidden="true" />
+                <span className="text-xs font-bold text-[var(--muted)]">选择</span>
+              </span>
+              <span className="option-image-frame">
+                {option.image_filename ? (
+                  <Image
+                    src={optionImageSrc(option)}
+                    alt={option.image_alt || `${option.option_key} 组指示物`}
+                    fill
+                    sizes="(min-width: 640px) 25vw, 100vw"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="card-back h-24 w-16" aria-hidden="true" />
+                )}
               </span>
               <span className="text-base font-black">{option.option_title}</span>
               <span className="text-sm text-[var(--muted)]">点击查看这组选项</span>

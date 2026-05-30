@@ -4,9 +4,11 @@ import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   ensureReading,
+  getReading,
   getPublishedReading,
   publishReading,
   resetDbForTests,
+  setReadingOptionCount,
   setReadingTopic,
   unpublishReading,
   updateReadingOption,
@@ -51,6 +53,24 @@ describe("reading publication flow", () => {
 
     unpublishReading(date);
     expect(getPublishedReading(date)).toBeNull();
+  });
+
+  it("supports two to four public options per reading", () => {
+    const date = "2026-05-31";
+    ensureReading(date);
+
+    expect(getReading(date)?.options.map((option) => option.option_key)).toEqual(["A", "B", "C"]);
+
+    setReadingOptionCount(date, 2);
+    expect(getReading(date)?.options.map((option) => option.option_key)).toEqual(["A", "B"]);
+
+    setReadingOptionCount(date, 4);
+    expect(getReading(date)?.options.map((option) => option.option_key)).toEqual([
+      "A",
+      "B",
+      "C",
+      "D"
+    ]);
   });
 });
 

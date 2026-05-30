@@ -254,7 +254,7 @@ select {
 
 .option-card {
   position: relative;
-  min-height: 180px;
+  min-height: 250px;
 }
 
 .option-card::before {
@@ -299,9 +299,57 @@ select {
     var(--veil);
 }
 
+.option-grid {
+  grid-template-columns: 1fr;
+}
+
+.option-image-frame,
+.admin-option-image,
+.admin-option-image-empty {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(215, 200, 255, 0.28);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(143, 241, 223, 0.08), rgba(255, 155, 204, 0.08)),
+    rgba(255, 249, 255, 0.05);
+}
+
+.option-image-frame {
+  display: grid;
+  min-height: 150px;
+  aspect-ratio: 4 / 5;
+  place-items: center;
+}
+
+.option-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-option-image {
+  width: 100%;
+  object-fit: cover;
+}
+
+.admin-option-image,
+.admin-option-image-empty {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  place-items: center;
+}
+
 .reading-panel {
   background:
     linear-gradient(180deg, rgba(255, 249, 255, 0.11), transparent 38%),
     linear-gradient(115deg, rgba(143, 241, 223, 0.06), rgba(255, 155, 204, 0.05)),
     var(--veil-strong);
+}
+
+@media (min-width: 640px) {
+  .option-grid {
+    grid-template-columns: repeat(var(--option-count), minmax(0, 1fr));
+  }
 }

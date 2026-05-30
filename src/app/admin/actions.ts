@@ -12,12 +12,15 @@ import {
   publishReading,
   saveOptionDraft,
   saveTopicSuggestions,
+  setReadingOptionCount,
   setReadingTopic,
   unpublishReading,
   updateReadingOption
 } from "@/lib/db";
 import { generateReadingDraft, generateTopicSuggestions } from "@/lib/ai";
 import { parseCardsInput } from "@/lib/lenormand";
+import { deleteOptionImage, hasUploadedImage, saveOptionImage } from "@/lib/option-images";
+import { isOptionKey } from "@/lib/options";
 
 function adminRedirect(path = "/admin", message?: string): never {
   if (!message) {
@@ -28,7 +31,7 @@ function adminRedirect(path = "/admin", message?: string): never {
 
 function optionKeyFromForm(formData: FormData) {
   const value = String(formData.get("optionKey") || "");
-  if (value !== "A" && value !== "B" && value !== "C") {
+  if (!isOptionKey(value)) {
     throw new Error("无效的选项。");
   }
   return value;
@@ -74,6 +77,18 @@ export async function selectTopicAction(formData: FormData) {
   adminRedirect("/admin", "今日主题已更新。");
 }
 
+export async function setOptionCountAction(formData: FormData) {
+  await requireAdmin();
+  const date = todayKey();
+  const optionCount = Number(formData.get("optionCount"));
+  const removedImages = setReadingOptionCount(date, optionCount);
+  await Promise.all(removedImages.map((filename) => deleteOptionImage(filename)));
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/archive");
+  adminRedirect("/admin", "组选项数量已更新。");
+}
+
 export async function optionFormAction(formData: FormData) {
   await requireAdmin();
   const date = todayKey();
@@ -82,10 +97,42 @@ export async function optionFormAction(formData: FormData) {
   const optionTitle = String(formData.get("optionTitle") || `${optionKey} 组选项`).trim();
   const cardsInput = String(formData.get("cards") || "");
   const finalText = String(formData.get("finalText") || "");
+  const imageAltInput = String(formData.get("imageAlt") || "").trim();
+  const deleteImage = String(formData.get("deleteImage") || "") === "1";
+  const imageInput = formData.get("indicatorImage");
   const parsed = parseCardsInput(cardsInput);
 
   if (!parsed.ok) {
     adminRedirect("/admin", parsed.errors.join("；"));
+  }
+
+  const currentReading = ensureReading(date);
+  const currentOption = currentReading.options.find((option) => option.option_key === optionKey);
+  let imageFilename: string | null | undefined;
+  let imageMimeType: string | null | undefined;
+  let imageAlt: string | null | undefined;
+
+  try {
+    if (hasUploadedImage(imageInput)) {
+      const saved = await saveOptionImage({
+        file: imageInput,
+        date,
+        optionKey,
+        oldFilename: currentOption?.image_filename
+      });
+      imageFilename = saved.filename;
+      imageMimeType = saved.mimeType;
+      imageAlt = imageAltInput || `${optionKey} 组指示物`;
+    } else if (deleteImage) {
+      await deleteOptionImage(currentOption?.image_filename);
+      imageFilename = null;
+      imageMimeType = null;
+      imageAlt = null;
+    } else if (currentOption?.image_filename) {
+      imageAlt = imageAltInput || `${optionKey} 组指示物`;
+    }
+  } catch (error) {
+    adminRedirect("/admin", error instanceof Error ? error.message : "指示物图片上传失败。");
   }
 
   updateReadingOption({
@@ -93,7 +140,10 @@ export async function optionFormAction(formData: FormData) {
     optionKey,
     optionTitle,
     cards: parsed.cards,
-    finalText
+    finalText,
+    imageFilename,
+    imageMimeType,
+    imageAlt
   });
 
   if (intent === "generate") {
