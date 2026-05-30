@@ -619,14 +619,46 @@ async function signUpSelf() {
 
   selfSignup.disabled = true;
   setSelfAuthStatus("正在注册...");
-  const { error } = await client.auth.signUp({ email, password });
+  const { error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+    }
+  });
   selfSignup.disabled = false;
   if (error) {
-    setSelfAuthStatus(`注册失败：${error.message}`);
+    setSelfAuthStatus(`注册失败：${friendlyAuthError(error.message)}`);
     return;
   }
   setSelfAuthStatus("注册成功。如果 Supabase 开启了邮箱验证，请先到邮箱确认。");
   await refreshSelfAuth();
+}
+
+function friendlyAuthError(message = "") {
+  const lowerMessage = message.toLowerCase();
+  if (lowerMessage.includes("already registered") || lowerMessage.includes("already been registered")) {
+    return "这个邮箱已经注册过，请直接点“登录”。";
+  }
+  if (lowerMessage.includes("invalid api key") || lowerMessage.includes("api key")) {
+    return "Supabase key 不正确，请重新复制 publishable 或 anon public key。";
+  }
+  if (lowerMessage.includes("signup") && lowerMessage.includes("disabled")) {
+    return "Supabase 里关闭了注册，请到 Authentication 开启 Sign ups。";
+  }
+  if (lowerMessage.includes("password") || lowerMessage.includes("weak")) {
+    return "密码不符合要求，请使用至少 6 位，并尽量包含字母和数字。";
+  }
+  if (lowerMessage.includes("email") && lowerMessage.includes("invalid")) {
+    return "邮箱格式不正确，请换一个真实邮箱。";
+  }
+  if (lowerMessage.includes("confirmation") || lowerMessage.includes("confirm") || lowerMessage.includes("mail")) {
+    return "确认邮件发送失败。可以先在 Supabase 的 Email 设置里关闭 Confirm email，或配置 SMTP 邮件服务。";
+  }
+  if (lowerMessage.includes("rate limit")) {
+    return "请求太频繁，等几分钟后再试。";
+  }
+  return message || "未知错误，请检查 Supabase Auth 设置。";
 }
 
 async function signOutSelf() {
