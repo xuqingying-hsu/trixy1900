@@ -64,6 +64,24 @@ const adminExport = document.querySelector("#adminExport");
 const adminPublish = document.querySelector("#adminPublish");
 const adminStatus = document.querySelector("#adminStatus");
 const githubToken = document.querySelector("#githubToken");
+const selfOpen = document.querySelector("#selfOpen");
+const selfPanel = document.querySelector("#selfPanel");
+const selfClose = document.querySelector("#selfClose");
+const selfEmail = document.querySelector("#selfEmail");
+const selfPassword = document.querySelector("#selfPassword");
+const selfLogin = document.querySelector("#selfLogin");
+const selfSignup = document.querySelector("#selfSignup");
+const selfLogout = document.querySelector("#selfLogout");
+const selfAuthStatus = document.querySelector("#selfAuthStatus");
+const selfForm = document.querySelector("#selfForm");
+const selfName = document.querySelector("#selfName");
+const selfRole = document.querySelector("#selfRole");
+const selfTags = document.querySelector("#selfTags");
+const selfQuote = document.querySelector("#selfQuote");
+const selfAvatar = document.querySelector("#selfAvatar");
+const selfPortrait = document.querySelector("#selfPortrait");
+const selfSave = document.querySelector("#selfSave");
+const selfSaveStatus = document.querySelector("#selfSaveStatus");
 let audioContext = null;
 let musicNodes = [];
 let musicTimer = null;
@@ -78,9 +96,34 @@ const repoConfig = {
   repo: "trixy1900",
   branch: "main"
 };
+const supabaseConfig = window.NIRVANA_SUPABASE || {};
+let supabaseClient = null;
+let selfSession = null;
+let selfProfile = null;
+
+function hasSupabaseConfig() {
+  return Boolean(supabaseConfig.url && supabaseConfig.anonKey && window.supabase);
+}
+
+function getSupabaseClient() {
+  if (!hasSupabaseConfig()) {
+    return null;
+  }
+
+  if (!supabaseClient) {
+    supabaseClient = window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey);
+  }
+
+  return supabaseClient;
+}
 
 async function loadMembers() {
   try {
+    const cloudMembers = await loadMembersFromSupabase();
+    if (cloudMembers) {
+      return cloudMembers;
+    }
+
     const localMembers = readLocalMembers();
     if (localMembers) {
       return localMembers;
@@ -97,6 +140,40 @@ async function loadMembers() {
     console.warn("Using built-in member data:", error);
     return fallbackMembers;
   }
+}
+
+async function loadMembersFromSupabase() {
+  const client = getSupabaseClient();
+  if (!client) {
+    return null;
+  }
+
+  const { data, error } = await client
+    .from(supabaseConfig.membersTable || "members")
+    .select("id, name, role, status, avatar, portrait, tags, quote, sort_order, created_at")
+    .in("status", ["active", "alumni"])
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.warn("Supabase members unavailable:", error);
+    return null;
+  }
+
+  return Array.isArray(data) && data.length ? data.map(memberFromSupabase) : null;
+}
+
+function memberFromSupabase(row) {
+  return {
+    id: row.id,
+    name: row.name || "未命名成员",
+    role: row.role || "港内成员",
+    avatar: row.avatar || placeholderImage,
+    portrait: row.portrait || "",
+    status: row.status || "active",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    quote: row.quote || "长风入港，同赴涅槃。"
+  };
 }
 
 function readLocalMembers() {
@@ -419,6 +496,235 @@ function closeDirectory() {
   directoryPanel.setAttribute("aria-hidden", "true");
 }
 
+function openSelfPanel() {
+  selfPanel.classList.add("is-open");
+  selfPanel.setAttribute("aria-hidden", "false");
+  refreshSelfAuth();
+}
+
+function closeSelfPanel() {
+  selfPanel.classList.remove("is-open");
+  selfPanel.setAttribute("aria-hidden", "true");
+}
+
+function setSelfAuthStatus(message) {
+  selfAuthStatus.textContent = message;
+}
+
+function setSelfSaveStatus(message) {
+  selfSaveStatus.textContent = message;
+}
+
+async function refreshSelfAuth() {
+  const client = getSupabaseClient();
+  if (!client) {
+    setSelfAuthStatus("云端后台尚未配置。请先在 config.js 填入 Supabase URL 和 anon key。");
+    setSelfSaveStatus("配置完成并发布后，成员就能在这里上传自己的资料。");
+    selfForm.classList.add("is-disabled");
+    selfSave.disabled = true;
+    return;
+  }
+
+  const { data } = await client.auth.getSession();
+  selfSession = data.session;
+  selfSave.disabled = !selfSession;
+  selfForm.classList.toggle("is-disabled", !selfSession);
+
+  if (!selfSession) {
+    selfProfile = null;
+    fillSelfForm();
+    setSelfAuthStatus("请先登录或注册。");
+    return;
+  }
+
+  setSelfAuthStatus(`已登录：${selfSession.user.email}`);
+  await loadSelfProfile();
+}
+
+async function loadSelfProfile() {
+  const client = getSupabaseClient();
+  if (!client || !selfSession) {
+    return;
+  }
+
+  const { data, error } = await client
+    .from(supabaseConfig.membersTable || "members")
+    .select("id, slug, name, role, status, avatar, portrait, tags, quote")
+    .eq("owner_id", selfSession.user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Self profile unavailable:", error);
+    setSelfSaveStatus("读取你的资料失败，请稍后再试。");
+    return;
+  }
+
+  selfProfile = data;
+  fillSelfForm();
+  if (selfProfile) {
+    setSelfSaveStatus(selfProfile.status === "pending" ? "你的资料正在待审核。" : "你的资料已在云端保存。");
+  } else {
+    setSelfSaveStatus("还没有资料，填写后首次保存会进入待审核。");
+  }
+}
+
+function fillSelfForm() {
+  selfName.value = selfProfile?.name || "";
+  selfRole.value = selfProfile?.role || "港内成员";
+  selfTags.value = Array.isArray(selfProfile?.tags) ? selfProfile.tags.join("，") : "";
+  selfQuote.value = selfProfile?.quote || "";
+  selfAvatar.value = "";
+  selfPortrait.value = "";
+}
+
+async function signInSelf() {
+  const client = getSupabaseClient();
+  if (!client) {
+    await refreshSelfAuth();
+    return;
+  }
+
+  const email = selfEmail.value.trim();
+  const password = selfPassword.value;
+  if (!email || !password) {
+    setSelfAuthStatus("请填写邮箱和密码。");
+    return;
+  }
+
+  selfLogin.disabled = true;
+  setSelfAuthStatus("正在登录...");
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  selfLogin.disabled = false;
+  if (error) {
+    setSelfAuthStatus(`登录失败：${error.message}`);
+    return;
+  }
+  await refreshSelfAuth();
+}
+
+async function signUpSelf() {
+  const client = getSupabaseClient();
+  if (!client) {
+    await refreshSelfAuth();
+    return;
+  }
+
+  const email = selfEmail.value.trim();
+  const password = selfPassword.value;
+  if (!email || password.length < 6) {
+    setSelfAuthStatus("请填写邮箱，密码至少 6 位。");
+    return;
+  }
+
+  selfSignup.disabled = true;
+  setSelfAuthStatus("正在注册...");
+  const { error } = await client.auth.signUp({ email, password });
+  selfSignup.disabled = false;
+  if (error) {
+    setSelfAuthStatus(`注册失败：${error.message}`);
+    return;
+  }
+  setSelfAuthStatus("注册成功。如果 Supabase 开启了邮箱验证，请先到邮箱确认。");
+  await refreshSelfAuth();
+}
+
+async function signOutSelf() {
+  const client = getSupabaseClient();
+  if (client) {
+    await client.auth.signOut();
+  }
+  await refreshSelfAuth();
+}
+
+async function saveSelfProfile(event) {
+  event.preventDefault();
+  const client = getSupabaseClient();
+  if (!client || !selfSession) {
+    setSelfSaveStatus("请先登录。");
+    return;
+  }
+
+  const name = selfName.value.trim();
+  if (!name) {
+    setSelfSaveStatus("请填写游戏 ID。");
+    return;
+  }
+
+  selfSave.disabled = true;
+  setSelfSaveStatus("正在上传资料...");
+
+  try {
+    let avatar = selfProfile?.avatar || "";
+    let portrait = selfProfile?.portrait || "";
+    if (selfAvatar.files[0]) {
+      avatar = await uploadMemberImage(selfAvatar.files[0], "avatar");
+    }
+    if (selfPortrait.files[0]) {
+      portrait = await uploadMemberImage(selfPortrait.files[0], "portrait");
+    }
+
+    const payload = {
+      owner_id: selfSession.user.id,
+      slug: selfProfile?.slug || `${slugify(name)}-${selfSession.user.id.slice(0, 8)}`,
+      name,
+      role: selfRole.value.trim() || "港内成员",
+      status: selfProfile?.status || "pending",
+      avatar,
+      portrait,
+      tags: parseTags(selfTags.value),
+      quote: selfQuote.value.trim()
+    };
+
+    const query = client.from(supabaseConfig.membersTable || "members");
+    const { data, error } = selfProfile?.id
+      ? await query.update(payload).eq("id", selfProfile.id).select().single()
+      : await query.insert(payload).select().single();
+
+    if (error) {
+      throw error;
+    }
+
+    selfProfile = data;
+    fillSelfForm();
+    setSelfSaveStatus(data.status === "pending" ? "已保存，等待社主审核后公开展示。" : "已保存，网页刷新后会同步最新资料。");
+    await reloadCloudMembers();
+  } catch (error) {
+    console.error(error);
+    setSelfSaveStatus(`保存失败：${error.message}`);
+  } finally {
+    selfSave.disabled = false;
+  }
+}
+
+async function uploadMemberImage(file, kind) {
+  const client = getSupabaseClient();
+  const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${selfSession.user.id}/${kind}-${Date.now()}.${ext}`;
+  const { error } = await client.storage
+    .from(supabaseConfig.storageBucket || "member-portraits")
+    .upload(path, file, { cacheControl: "31536000", upsert: true });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data } = client.storage
+    .from(supabaseConfig.storageBucket || "member-portraits")
+    .getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function reloadCloudMembers() {
+  const cloudMembers = await loadMembersFromSupabase();
+  if (!cloudMembers) {
+    return;
+  }
+
+  members = cloudMembers;
+  refreshShowcase(Math.min(activeIndex, members.length - 1));
+}
+
 function renderAdminList() {
   if (!adminMemberList) {
     return;
@@ -474,12 +780,16 @@ function memberFromForm(existing) {
     name: adminName.value.trim(),
     role: adminRole.value.trim(),
     status: adminStatusType.value,
-    tags: adminTags.value
-      .split(/[，,]/)
-      .map((tag) => tag.trim())
-      .filter(Boolean),
+    tags: parseTags(adminTags.value),
     quote: adminQuote.value.trim()
   };
+}
+
+function parseTags(value) {
+  return String(value || "")
+    .split(/[，,]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }
 
 function slugify(value) {
@@ -794,6 +1104,17 @@ window.addEventListener("load", () => {
   }
 });
 
+selfOpen.addEventListener("click", openSelfPanel);
+selfClose.addEventListener("click", closeSelfPanel);
+selfPanel.addEventListener("click", (event) => {
+  if (event.target === selfPanel) {
+    closeSelfPanel();
+  }
+});
+selfLogin.addEventListener("click", signInSelf);
+selfSignup.addEventListener("click", signUpSelf);
+selfLogout.addEventListener("click", signOutSelf);
+selfForm.addEventListener("submit", saveSelfProfile);
 adminOpen.addEventListener("click", openAdmin);
 directoryOpen.addEventListener("click", openDirectory);
 directoryClose.addEventListener("click", closeDirectory);
@@ -876,4 +1197,5 @@ loadMembers().then((loadedMembers) => {
   renderAdminList();
   setActive(0);
   startCycle();
+  refreshSelfAuth();
 });
