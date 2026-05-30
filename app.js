@@ -658,6 +658,9 @@ function friendlyAuthError(message = "") {
   if (lowerMessage.includes("rate limit")) {
     return "请求太频繁，等几分钟后再试。";
   }
+  if (lowerMessage.includes("failed to fetch") || lowerMessage.includes("networkerror")) {
+    return "浏览器没有连上 Supabase。请先确认能打开 https://yyznfmtngkcdfqcbxacn.supabase.co/auth/v1/settings；如果打不开，换网络或开启代理后再试。";
+  }
   return message || "未知错误，请检查 Supabase Auth 设置。";
 }
 
