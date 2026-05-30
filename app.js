@@ -84,7 +84,7 @@ const selfSave = document.querySelector("#selfSave");
 const selfSaveStatus = document.querySelector("#selfSaveStatus");
 let audioContext = null;
 let musicNodes = [];
-let musicTimer = null;
+let musicTimers = [];
 let musicOn = false;
 let musicUnlocked = false;
 let adminIndex = 0;
@@ -1019,63 +1019,198 @@ function playHarborTone() {
 
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, ctx.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.16, ctx.currentTime + 1.2);
+  master.gain.exponentialRampToValueAtTime(0.13, ctx.currentTime + 1.6);
   master.connect(ctx.destination);
 
   const delay = ctx.createDelay(5);
-  delay.delayTime.value = 0.42;
+  delay.delayTime.value = 0.48;
   const feedback = ctx.createGain();
-  feedback.gain.value = 0.28;
+  feedback.gain.value = 0.34;
   const wet = ctx.createGain();
-  wet.gain.value = 0.22;
+  wet.gain.value = 0.28;
   delay.connect(feedback);
   feedback.connect(delay);
   delay.connect(wet);
   wet.connect(master);
 
-  const notes = [196, 220, 247, 294, 330, 392, 440];
-  let step = 0;
-  const playNote = () => {
+  const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let index = 0; index < noiseData.length; index += 1) {
+    noiseData[index] = (Math.random() * 2 - 1) * 0.36;
+  }
+
+  const wind = ctx.createBufferSource();
+  const windFilter = ctx.createBiquadFilter();
+  const windGain = ctx.createGain();
+  wind.buffer = noiseBuffer;
+  wind.loop = true;
+  windFilter.type = "bandpass";
+  windFilter.frequency.value = 620;
+  windFilter.Q.value = 0.7;
+  windGain.gain.value = 0.018;
+  wind.connect(windFilter);
+  windFilter.connect(windGain);
+  windGain.connect(master);
+  wind.start();
+  musicNodes.push(master, delay, feedback, wet, wind, windFilter, windGain);
+
+  const scale = [146.83, 174.61, 196, 220, 261.63, 293.66, 349.23, 392];
+  const pluckPattern = [0, 2, 4, 2, 5, 3, 1, 0, 4, 5, 7, 5];
+  const flutePattern = [4, 5, 7, 5, 4, 2, 3, 4, 5, 4, 2, 0];
+  let pluckStep = 0;
+  let fluteStep = 0;
+  let drumStep = 0;
+
+  const sendToEcho = (gainNode, amount = 0.2) => {
+    const send = ctx.createGain();
+    send.gain.value = amount;
+    gainNode.connect(send);
+    send.connect(delay);
+    musicNodes.push(send);
+  };
+
+  const playPluck = (frequency, when = ctx.currentTime, accent = false) => {
     if (!musicOn || !audioContext) {
       return;
     }
 
-    const now = ctx.currentTime;
-    const base = notes[step % notes.length];
+    const body = ctx.createOscillator();
+    const overtone = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    const overtoneGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    const amp = ctx.createGain();
+
+    body.type = "triangle";
+    body.frequency.setValueAtTime(frequency, when);
+    overtone.type = "sine";
+    overtone.frequency.setValueAtTime(frequency * 2.01, when);
+    bodyGain.gain.value = accent ? 0.18 : 0.12;
+    overtoneGain.gain.value = accent ? 0.045 : 0.028;
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1480, when);
+    filter.frequency.exponentialRampToValueAtTime(520, when + 1.8);
+    amp.gain.setValueAtTime(0.0001, when);
+    amp.gain.exponentialRampToValueAtTime(accent ? 0.18 : 0.11, when + 0.025);
+    amp.gain.exponentialRampToValueAtTime(0.0001, when + 2.9);
+
+    body.connect(bodyGain);
+    overtone.connect(overtoneGain);
+    bodyGain.connect(filter);
+    overtoneGain.connect(filter);
+    filter.connect(amp);
+    amp.connect(master);
+    sendToEcho(amp, accent ? 0.26 : 0.18);
+
+    body.start(when);
+    overtone.start(when);
+    body.stop(when + 3);
+    overtone.stop(when + 3);
+    musicNodes.push(body, overtone, bodyGain, overtoneGain, filter, amp);
+  };
+
+  const playFlute = (frequency, when = ctx.currentTime) => {
+    if (!musicOn || !audioContext) {
+      return;
+    }
+
+    const osc = ctx.createOscillator();
+    const breath = ctx.createOscillator();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    const amp = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(frequency, when);
+    breath.type = "triangle";
+    breath.frequency.setValueAtTime(frequency * 2, when);
+    lfo.type = "sine";
+    lfo.frequency.setValueAtTime(5.2, when);
+    lfoGain.gain.setValueAtTime(9, when);
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1850, when);
+    amp.gain.setValueAtTime(0.0001, when);
+    amp.gain.linearRampToValueAtTime(0.055, when + 0.42);
+    amp.gain.setValueAtTime(0.052, when + 2.7);
+    amp.gain.exponentialRampToValueAtTime(0.0001, when + 3.8);
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.detune);
+    osc.connect(filter);
+    breath.connect(filter);
+    filter.connect(amp);
+    amp.connect(master);
+    sendToEcho(amp, 0.34);
+
+    osc.start(when);
+    breath.start(when);
+    lfo.start(when);
+    osc.stop(when + 3.9);
+    breath.stop(when + 3.9);
+    lfo.stop(when + 3.9);
+    musicNodes.push(osc, breath, lfo, lfoGain, filter, amp);
+  };
+
+  const playDrum = (when = ctx.currentTime) => {
+    if (!musicOn || !audioContext) {
+      return;
+    }
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
-
-    osc.type = step % 3 === 0 ? "triangle" : "sine";
-    osc.frequency.setValueAtTime(base * (step % 5 === 0 ? 0.5 : 1), now);
-    osc.detune.setValueAtTime((step % 4 - 1.5) * 4, now);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(78, when);
+    osc.frequency.exponentialRampToValueAtTime(42, when + 0.46);
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(960, now);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(step % 4 === 0 ? 0.13 : 0.08, now + 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
-
+    filter.frequency.value = 180;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.17, when + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.72);
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(master);
-    gain.connect(delay);
-    osc.start(now);
-    osc.stop(now + 2.5);
-
+    osc.start(when);
+    osc.stop(when + 0.8);
     musicNodes.push(osc, gain, filter);
-    step += step % 2 === 0 ? 2 : 1;
   };
 
-  playNote();
-  musicTimer = window.setInterval(playNote, 1180);
-  musicNodes.push(master, delay, feedback, wet);
+  const playPluckPhrase = () => {
+    const now = ctx.currentTime;
+    const first = scale[pluckPattern[pluckStep % pluckPattern.length]];
+    const second = scale[pluckPattern[(pluckStep + 2) % pluckPattern.length]];
+    playPluck(first * (pluckStep % 6 === 0 ? 0.5 : 1), now, pluckStep % 4 === 0);
+    playPluck(second, now + 0.38, false);
+    pluckStep += 1;
+  };
+
+  const playFlutePhrase = () => {
+    const now = ctx.currentTime;
+    playFlute(scale[flutePattern[fluteStep % flutePattern.length]] * 2, now);
+    fluteStep += 1;
+  };
+
+  const playDrumPhrase = () => {
+    const now = ctx.currentTime;
+    playDrum(now);
+    if (drumStep % 2 === 0) {
+      playDrum(now + 0.52);
+    }
+    drumStep += 1;
+  };
+
+  playPluckPhrase();
+  playFlutePhrase();
+  playDrumPhrase();
+  musicTimers.push(window.setInterval(playPluckPhrase, 1880));
+  musicTimers.push(window.setInterval(playFlutePhrase, 7600));
+  musicTimers.push(window.setInterval(playDrumPhrase, 6800));
 }
 
 function stopHarborTone(markStopped = true) {
-  if (musicTimer) {
-    window.clearInterval(musicTimer);
-    musicTimer = null;
-  }
+  musicTimers.forEach((musicTimer) => window.clearInterval(musicTimer));
+  musicTimers = [];
 
   musicNodes.forEach((node) => {
     try {
