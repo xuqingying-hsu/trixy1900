@@ -74,7 +74,7 @@ let directoryQuery = "";
 
 const localMembersKey = "nirvana-harbor-members";
 const repoConfig = {
-  owner: "xuqingying-hsu",
+  owner: "nirvana-harbor",
   repo: "trixy1900",
   branch: "main"
 };
