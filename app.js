@@ -37,6 +37,15 @@ const rosterCountEl = document.querySelector("#rosterCount");
 const memberIndexEl = document.querySelector("#memberIndex");
 const memberTotalEl = document.querySelector("#memberTotal");
 const progressEl = document.querySelector("#cycleProgress");
+const directoryOpen = document.querySelector("#directoryOpen");
+const directoryPanel = document.querySelector("#directoryPanel");
+const directoryClose = document.querySelector("#directoryClose");
+const directorySearch = document.querySelector("#directorySearch");
+const directoryGrid = document.querySelector("#directoryGrid");
+const alumniOpen = document.querySelector("#alumniOpen");
+const alumniPanel = document.querySelector("#alumniPanel");
+const alumniClose = document.querySelector("#alumniClose");
+const alumniGrid = document.querySelector("#alumniGrid");
 const adminOpen = document.querySelector("#adminOpen");
 const adminPanel = document.querySelector("#adminPanel");
 const adminClose = document.querySelector("#adminClose");
@@ -45,6 +54,7 @@ const adminForm = document.querySelector("#adminForm");
 const adminMemberList = document.querySelector("#adminMemberList");
 const adminName = document.querySelector("#adminName");
 const adminRole = document.querySelector("#adminRole");
+const adminStatusType = document.querySelector("#adminStatusType");
 const adminTags = document.querySelector("#adminTags");
 const adminQuote = document.querySelector("#adminQuote");
 const adminAvatar = document.querySelector("#adminAvatar");
@@ -60,6 +70,7 @@ let musicTimer = null;
 let musicOn = false;
 let musicUnlocked = false;
 let adminIndex = 0;
+let directoryQuery = "";
 
 const localMembersKey = "nirvana-harbor-members";
 const repoConfig = {
@@ -110,16 +121,33 @@ function imageFor(member) {
   return member.portrait || member.avatar || placeholderImage;
 }
 
+function activeMembers() {
+  return members.filter((member) => member.status !== "alumni");
+}
+
+function alumniMembers() {
+  return members.filter((member) => member.status === "alumni");
+}
+
+function globalIndexForActive(activeIndexValue) {
+  const active = activeMembers();
+  const member = active[activeIndexValue];
+  return member ? members.indexOf(member) : 0;
+}
+
 function renderRoster() {
   rosterEl.innerHTML = "";
-  rosterCountEl.textContent = String(members.length).padStart(2, "0");
-  memberTotalEl.textContent = `/ ${String(members.length).padStart(2, "0")}`;
+  const active = activeMembers();
+  rosterCountEl.textContent = String(active.length).padStart(2, "0");
+  memberTotalEl.textContent = `/ ${String(active.length).padStart(2, "0")}`;
 
-  members.forEach((member, index) => {
+  getFeaturedMemberIndexes().forEach((index) => {
+    const member = members[index];
     const card = document.createElement("button");
-    card.className = "member-card";
+    card.className = `member-card${index === activeIndex ? " is-active" : ""}`;
     card.type = "button";
     card.dataset.index = index;
+    card.setAttribute("aria-current", index === activeIndex ? "true" : "false");
     card.setAttribute("aria-label", `查看 ${member.name}`);
 
     const avatar = document.createElement("img");
@@ -145,6 +173,103 @@ function renderRoster() {
     card.addEventListener("mouseleave", resumeCycle);
     rosterEl.append(card);
   });
+
+  renderDirectory();
+  renderAlumni();
+}
+
+function getFeaturedMemberIndexes(limit = 8) {
+  const active = activeMembers();
+  if (active.length <= limit) {
+    return active.map((member) => members.indexOf(member));
+  }
+
+  const currentGlobal = activeIndex;
+  const currentActive = Math.max(0, active.findIndex((member) => members.indexOf(member) === currentGlobal));
+  const indexes = [members.indexOf(active[currentActive])];
+  let offset = 1;
+  while (indexes.length < limit && offset < active.length) {
+    indexes.push(members.indexOf(active[(currentActive + offset) % active.length]));
+    if (indexes.length < limit) {
+      indexes.push(members.indexOf(active[(currentActive - offset + active.length) % active.length]));
+    }
+    offset += 1;
+  }
+  return [...new Set(indexes)].slice(0, limit);
+}
+
+function renderDirectory() {
+  if (!directoryGrid) {
+    return;
+  }
+
+  const query = directoryQuery.trim().toLowerCase();
+  directoryGrid.innerHTML = "";
+  members
+    .map((member, index) => ({ member, index }))
+    .filter(({ member }) => member.status !== "alumni")
+    .filter(({ member }) => {
+      if (!query) {
+        return true;
+      }
+      return [member.name, member.role, ...(member.tags || [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    })
+    .forEach(({ member, index }) => {
+      const card = document.createElement("button");
+      card.className = `directory-card${index === activeIndex ? " is-active" : ""}`;
+      card.type = "button";
+      card.innerHTML = `
+        <img src="${escapeHtml(member.avatar || imageFor(member))}" alt="">
+        <span>
+          <strong>${escapeHtml(member.name)}</strong>
+          <span>${escapeHtml(member.role)}</span>
+          <small>${escapeHtml((member.tags || []).slice(0, 2).join(" · "))}</small>
+        </span>
+      `;
+      card.addEventListener("click", () => {
+        setActive(index, true);
+        closeDirectory();
+      });
+      directoryGrid.append(card);
+    });
+
+  if (!directoryGrid.children.length) {
+    const empty = document.createElement("p");
+    empty.className = "directory-empty";
+    empty.textContent = "没有匹配的成员";
+    directoryGrid.append(empty);
+  }
+}
+
+function renderAlumni() {
+  if (!alumniGrid) {
+    return;
+  }
+
+  alumniGrid.innerHTML = "";
+  alumniMembers().forEach((member) => {
+    const card = document.createElement("article");
+    card.className = "directory-card";
+    card.innerHTML = `
+      <img src="${escapeHtml(member.avatar || imageFor(member))}" alt="">
+      <span>
+        <strong>${escapeHtml(member.name)}</strong>
+        <span>${escapeHtml(member.role || "旧友成员")}</span>
+        <small>${escapeHtml((member.tags || ["旧友"]).slice(0, 2).join(" · "))}</small>
+      </span>
+    `;
+    alumniGrid.append(card);
+  });
+
+  if (!alumniGrid.children.length) {
+    const empty = document.createElement("p");
+    empty.className = "directory-empty";
+    empty.textContent = "旧友录暂未收录成员";
+    alumniGrid.append(empty);
+  }
 }
 
 function refreshShowcase(index = activeIndex) {
@@ -158,8 +283,16 @@ function setActive(index, userInitiated = false) {
     return;
   }
 
-  activeIndex = (index + members.length) % members.length;
-  const member = members[activeIndex];
+  const active = activeMembers();
+  if (!active.length) {
+    return;
+  }
+
+  const requestedMember = members[index];
+  const member = requestedMember && requestedMember.status !== "alumni"
+    ? requestedMember
+    : active[((index % active.length) + active.length) % active.length];
+  activeIndex = members.indexOf(member);
   const memberImage = imageFor(member);
 
   portrait.classList.add("is-switching");
@@ -184,9 +317,14 @@ function setActive(index, userInitiated = false) {
     };
 
     document.querySelectorAll(".member-card").forEach((card, cardIndex) => {
-      card.classList.toggle("is-active", cardIndex === activeIndex);
-      card.setAttribute("aria-current", cardIndex === activeIndex ? "true" : "false");
+      const index = Number(card.dataset.index);
+      card.classList.toggle("is-active", index === activeIndex);
+      card.setAttribute("aria-current", index === activeIndex ? "true" : "false");
     });
+    renderDirectory();
+    if (!userInitiated && members.length > 8) {
+      renderRoster();
+    }
 
     window.setTimeout(() => portrait.classList.remove("is-switching"), 60);
     restartProgress();
@@ -199,11 +337,13 @@ function setActive(index, userInitiated = false) {
 
 function startCycle() {
   stopCycle();
-  if (paused || members.length < 2) {
+  if (paused || activeMembers().length < 2) {
     return;
   }
   timer = window.setInterval(() => {
-    setActive(activeIndex + 1);
+    const active = activeMembers();
+    const activePosition = active.findIndex((member) => members.indexOf(member) === activeIndex);
+    setActive(members.indexOf(active[(activePosition + 1) % active.length]));
   }, cycleMs);
   restartProgress();
 }
@@ -236,7 +376,7 @@ function restartProgress() {
   progressEl.style.width = "0%";
   void progressEl.offsetWidth;
   progressEl.style.width = "";
-  if (!paused && members.length > 1) {
+  if (!paused && activeMembers().length > 1) {
     progressEl.classList.add("is-running");
   }
 }
@@ -267,6 +407,18 @@ function closeAdmin() {
   adminPanel.setAttribute("aria-hidden", "true");
 }
 
+function openDirectory() {
+  directoryPanel.classList.add("is-open");
+  directoryPanel.setAttribute("aria-hidden", "false");
+  renderDirectory();
+  directorySearch.focus();
+}
+
+function closeDirectory() {
+  directoryPanel.classList.remove("is-open");
+  directoryPanel.setAttribute("aria-hidden", "true");
+}
+
 function renderAdminList() {
   if (!adminMemberList) {
     return;
@@ -295,6 +447,7 @@ function fillAdminForm() {
   const member = members[adminIndex] || createBlankMember();
   adminName.value = member.name || "";
   adminRole.value = member.role || "";
+  adminStatusType.value = member.status === "alumni" ? "alumni" : "active";
   adminTags.value = (member.tags || []).join("，");
   adminQuote.value = member.quote || "";
   adminAvatar.value = "";
@@ -308,6 +461,7 @@ function createBlankMember() {
     role: "港内成员",
     avatar: placeholderImage,
     portrait: "",
+    status: "active",
     tags: ["涅槃港"],
     quote: "长风入港，同赴涅槃。"
   };
@@ -319,6 +473,7 @@ function memberFromForm(existing) {
     id: existing.id || slugify(adminName.value || "member"),
     name: adminName.value.trim(),
     role: adminRole.value.trim(),
+    status: adminStatusType.value,
     tags: adminTags.value
       .split(/[，,]/)
       .map((tag) => tag.trim())
@@ -640,6 +795,32 @@ window.addEventListener("load", () => {
 });
 
 adminOpen.addEventListener("click", openAdmin);
+directoryOpen.addEventListener("click", openDirectory);
+directoryClose.addEventListener("click", closeDirectory);
+alumniOpen.addEventListener("click", () => {
+  alumniPanel.classList.add("is-open");
+  alumniPanel.setAttribute("aria-hidden", "false");
+  renderAlumni();
+});
+alumniClose.addEventListener("click", () => {
+  alumniPanel.classList.remove("is-open");
+  alumniPanel.setAttribute("aria-hidden", "true");
+});
+alumniPanel.addEventListener("click", (event) => {
+  if (event.target === alumniPanel) {
+    alumniPanel.classList.remove("is-open");
+    alumniPanel.setAttribute("aria-hidden", "true");
+  }
+});
+directoryPanel.addEventListener("click", (event) => {
+  if (event.target === directoryPanel) {
+    closeDirectory();
+  }
+});
+directorySearch.addEventListener("input", () => {
+  directoryQuery = directorySearch.value;
+  renderDirectory();
+});
 adminClose.addEventListener("click", closeAdmin);
 adminPanel.addEventListener("click", (event) => {
   if (event.target === adminPanel) {

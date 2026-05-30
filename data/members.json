@@ -6,6 +6,7 @@
       "role": "社主",
       "avatar": "assets/jiangduyi.png",
       "portrait": "assets/jiangduyi-portrait.png",
+      "status": "active",
       "tags": ["见道修", "涅槃港", "执灯领港"],
       "quote": "知我罪我，其惟春秋。"
     },
@@ -15,6 +16,7 @@
       "role": "副社主",
       "avatar": "assets/member-placeholder.png",
       "portrait": "",
+      "status": "active",
       "tags": ["副社主", "同袍", "掌舵"],
       "quote": "风起时并肩，潮落处守港。"
     },
@@ -24,6 +26,7 @@
       "role": "港内成员",
       "avatar": "assets/member-placeholder.png",
       "portrait": "",
+      "status": "active",
       "tags": ["百业", "待补角色图", "涅槃港"],
       "quote": "此席待君归港。"
     },
@@ -33,6 +36,7 @@
       "role": "港内成员",
       "avatar": "assets/member-placeholder.png",
       "portrait": "",
+      "status": "active",
       "tags": ["百业", "待补资料", "同游燕云"],
       "quote": "一灯照水，万象成港。"
     }

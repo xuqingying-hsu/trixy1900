@@ -62,9 +62,42 @@
         <div class="roster-head">
           <span>港内成员</span>
           <b id="rosterCount">0</b>
+          <button id="directoryOpen" type="button">全员名册</button>
+          <button id="alumniOpen" type="button">旧友录</button>
         </div>
         <div class="member-track" id="memberRoster"></div>
       </nav>
+
+      <section class="directory-panel" id="directoryPanel" aria-hidden="true">
+        <div class="directory-dialog" role="dialog" aria-modal="true" aria-labelledby="directoryTitle">
+          <header class="directory-head">
+            <div>
+              <p class="eyebrow">百业全员</p>
+              <h3 id="directoryTitle">涅槃港名册</h3>
+            </div>
+            <label class="directory-search">
+              <span>搜索</span>
+              <input id="directorySearch" type="search" placeholder="输入成员名、职位或标签" />
+            </label>
+            <button class="directory-close" id="directoryClose" type="button" aria-label="关闭全员名册">×</button>
+          </header>
+          <div class="directory-grid" id="directoryGrid"></div>
+        </div>
+      </section>
+
+      <section class="directory-panel" id="alumniPanel" aria-hidden="true">
+        <div class="directory-dialog" role="dialog" aria-modal="true" aria-labelledby="alumniTitle">
+          <header class="directory-head">
+            <div>
+              <p class="eyebrow">旧游仍在</p>
+              <h3 id="alumniTitle">涅槃港旧友录</h3>
+            </div>
+            <p class="alumni-note">曾同行于百业，后来各奔江湖，名字仍留在港内。</p>
+            <button class="directory-close" id="alumniClose" type="button" aria-label="关闭旧友录">×</button>
+          </header>
+          <div class="directory-grid" id="alumniGrid"></div>
+        </div>
+      </section>
 
       <section class="admin-panel" id="adminPanel" aria-hidden="true">
         <div class="admin-dialog" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
@@ -90,6 +123,13 @@
               <label>
                 职位
                 <input id="adminRole" name="role" type="text" required placeholder="例如：港内成员" />
+              </label>
+              <label>
+                名册状态
+                <select id="adminStatusType" name="status">
+                  <option value="active">现役成员</option>
+                  <option value="alumni">旧友成员</option>
+                </select>
               </label>
               <label>
                 标签

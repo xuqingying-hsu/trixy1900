@@ -567,6 +567,15 @@ h1 {
   font-weight: 400;
 }
 
+.roster-head button {
+  min-height: 30px;
+  border: 1px solid rgba(201, 160, 77, 0.42);
+  background: rgba(201, 160, 77, 0.1);
+  color: var(--gold-bright);
+  cursor: pointer;
+  font-size: 12px;
+}
+
 .member-track {
   display: grid;
   grid-auto-columns: minmax(190px, 240px);
@@ -653,6 +662,155 @@ h1 {
   margin-top: 7px;
   color: rgba(244, 240, 229, 0.54);
   font-size: 12px;
+}
+
+.directory-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(14px);
+}
+
+.directory-panel.is-open {
+  display: flex;
+}
+
+.directory-dialog {
+  width: min(1180px, 96vw);
+  max-height: 90vh;
+  overflow: hidden;
+  border: 1px solid rgba(243, 213, 140, 0.3);
+  background:
+    linear-gradient(135deg, rgba(201, 160, 77, 0.12), transparent 42%),
+    rgba(10, 10, 9, 0.97);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.72);
+}
+
+.directory-head {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(260px, 420px) 44px;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(244, 240, 229, 0.12);
+}
+
+.directory-head h3 {
+  margin: 4px 0 0;
+  font-family: var(--font-title);
+  font-size: 34px;
+  font-weight: 400;
+}
+
+.directory-search,
+.alumni-note {
+  display: grid;
+  gap: 6px;
+  color: rgba(244, 240, 229, 0.66);
+  font-size: 12px;
+}
+
+.alumni-note {
+  display: block;
+  margin: 0;
+  line-height: 1.7;
+}
+
+.directory-search input {
+  width: 100%;
+  border: 1px solid rgba(244, 240, 229, 0.16);
+  background: rgba(0, 0, 0, 0.38);
+  color: var(--paper);
+  padding: 10px 11px;
+  outline: none;
+}
+
+.directory-close {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(201, 160, 77, 0.42);
+  background: rgba(201, 160, 77, 0.12);
+  color: var(--paper);
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.directory-grid {
+  display: grid;
+  max-height: calc(90vh - 92px);
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 10px;
+  overflow: auto;
+  padding: 16px;
+}
+
+.directory-card {
+  display: grid;
+  min-height: 96px;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(244, 240, 229, 0.13);
+  background:
+    linear-gradient(110deg, rgba(244, 240, 229, 0.04), transparent 45%),
+    rgba(8, 8, 7, 0.66);
+  color: var(--paper);
+  cursor: pointer;
+  padding: 9px;
+  text-align: left;
+}
+
+.directory-card:hover,
+.directory-card.is-active {
+  border-color: rgba(243, 213, 140, 0.72);
+  background: rgba(201, 160, 77, 0.14);
+}
+
+.directory-card img {
+  width: 58px;
+  height: 78px;
+  object-fit: cover;
+  border: 1px solid rgba(244, 240, 229, 0.18);
+  filter: grayscale(0.68) contrast(1.1);
+}
+
+.directory-card strong,
+.directory-card span,
+.directory-card small {
+  display: block;
+}
+
+.directory-card strong {
+  font-family: var(--font-brush);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.directory-card span {
+  margin-top: 4px;
+  color: var(--gold-bright);
+  font-size: 12px;
+}
+
+.directory-card small {
+  margin-top: 6px;
+  color: rgba(244, 240, 229, 0.5);
+  font-size: 11px;
+}
+
+.directory-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 32px;
+  border: 1px solid rgba(244, 240, 229, 0.12);
+  color: rgba(244, 240, 229, 0.62);
+  text-align: center;
 }
 
 .admin-panel {
@@ -782,6 +940,7 @@ h1 {
 
 .admin-form input,
 .admin-form textarea,
+.admin-form select,
 .admin-publish input {
   width: 100%;
   border: 1px solid rgba(244, 240, 229, 0.16);
@@ -879,6 +1038,10 @@ h1 {
     align-items: center;
     justify-content: space-between;
   }
+
+  .roster-head button {
+    padding: 0 12px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -902,6 +1065,19 @@ h1 {
 
   .admin-open {
     min-height: 42px;
+  }
+
+  .directory-head {
+    grid-template-columns: 1fr 42px;
+  }
+
+  .directory-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .directory-grid {
+    grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
   }
 
   .admin-grid {
