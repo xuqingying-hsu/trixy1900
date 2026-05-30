@@ -4,14 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>燕云十六声 · 涅槃港</title>
-    <meta name="music-credit" content="Wuxia2_Orchestra by PeriTune, CC BY 4.0, https://peritune.com/blog/2018/10/13/wuxia2/" />
+    <meta name="music-credit" content="Wuxia series by PeriTune, CC BY 4.0, https://peritune.com/" />
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="app.js" defer></script>
   </head>
   <body>
-    <audio id="siteBgm" data-src="assets/bgm.mp3" preload="auto" loop title="BGM: Wuxia2_Orchestra by PeriTune, CC BY 4.0"></audio>
+    <audio
+      id="siteBgm"
+      data-src="assets/bgm.mp3"
+      data-playlist="assets/bgm.mp3,assets/bgm/wuxia.mp3,assets/bgm/wuxia2-guzheng-pipa.mp3,assets/bgm/wuxia3.mp3"
+      preload="auto"
+      title="BGM: Wuxia series by PeriTune, CC BY 4.0"
+    ></audio>
     <main class="harbor-screen" aria-live="polite">
       <div class="wash wash-left"></div>
       <div class="wash wash-right"></div>
@@ -33,7 +39,7 @@
           </article>
           <article>
             <span>副社主</span>
-            <strong>晟杨</strong>
+            <strong>晟楊</strong>
           </article>
           <button class="admin-open" id="selfOpen" type="button">名册管理</button>
         </section>
@@ -64,7 +70,7 @@
 
       <nav class="roster" aria-label="成员列表">
         <div class="roster-head">
-          <span>港内成员</span>
+          <span>社众</span>
           <b id="rosterCount">0</b>
           <button id="directoryOpen" type="button">全员名册</button>
           <button id="alumniOpen" type="button">旧友录</button>
@@ -126,7 +132,7 @@
               </label>
               <label>
                 职位
-                <input id="adminRole" name="role" type="text" required placeholder="例如：港内成员" />
+                <input id="adminRole" name="role" type="text" required placeholder="例如：社众" />
               </label>
               <label>
                 名册状态
@@ -211,7 +217,7 @@
               </label>
               <label>
                 职位 / 备注
-                <input id="selfRole" name="role" type="text" placeholder="例如：港内成员" />
+                <input id="selfRole" name="role" type="text" placeholder="例如：社众" />
               </label>
               <label>
                 标签
