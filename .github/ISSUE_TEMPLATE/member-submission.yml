@@ -1,0 +1,68 @@
+name: 成员资料投稿
+description: 提交涅槃港成员或旧友成员的展示资料
+title: "成员投稿：请填写游戏ID"
+labels:
+  - member-submission
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢投稿涅槃港名册。请按表单填写资料，并在图片区域把角色图拖进输入框上传。
+
+        提交后不会立刻更新网页，社主审核后再发布到正式页面。
+  - type: input
+    id: game_id
+    attributes:
+      label: 游戏 ID
+      description: 你希望网页展示的名字
+      placeholder: 例如：江都夷
+    validations:
+      required: true
+  - type: dropdown
+    id: member_status
+    attributes:
+      label: 名册状态
+      description: 现役成员会进入全员名册和轮播；旧友成员会进入旧友录
+      options:
+        - 现役成员
+        - 旧友成员
+    validations:
+      required: true
+  - type: input
+    id: role
+    attributes:
+      label: 职位或身份
+      placeholder: 例如：港内成员 / 副社主 / 旧友成员
+    validations:
+      required: true
+  - type: input
+    id: tags
+    attributes:
+      label: 标签
+      description: 用逗号分隔，最多建议 3 个
+      placeholder: 例如：见道修, 涅槃港, 执灯领港
+  - type: textarea
+    id: quote
+    attributes:
+      label: 角色短句
+      description: 一句展示在网页上的话
+      placeholder: 例如：长风入港，同赴涅槃。
+  - type: textarea
+    id: avatar
+    attributes:
+      label: 头像图
+      description: 可选。把图片拖到这个输入框里上传，适合作为名册小头像
+      placeholder: 把头像图拖到这里，或粘贴图片链接
+  - type: textarea
+    id: portrait
+    attributes:
+      label: 角色展示图
+      description: 必填。把纯角色展示图拖到这个输入框里上传，横版或竖版都可以
+      placeholder: 把角色展示图拖到这里，或粘贴图片链接
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 备注
+      description: 有特殊展示需求可以写在这里
