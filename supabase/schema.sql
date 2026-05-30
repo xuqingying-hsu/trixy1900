@@ -51,11 +51,20 @@ security definer
 set search_path = public
 as $$
 begin
-  if not public.is_member_admin() then
-    new.status = old.status;
-    new.sort_order = old.sort_order;
-    new.owner_id = old.owner_id;
+  -- SQL Editor / service role has no auth.uid(); allow dashboard maintenance.
+  if (select auth.uid()) is null then
+    return new;
   end if;
+
+  -- Frontend admins can review and reorder members.
+  if public.is_member_admin() then
+    return new;
+  end if;
+
+  -- Ordinary members can edit profile text/images, but not review fields.
+  new.status = old.status;
+  new.sort_order = old.sort_order;
+  new.owner_id = old.owner_id;
   return new;
 end;
 $$;
