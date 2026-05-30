@@ -1139,18 +1139,18 @@ window.addEventListener("load", () => {
   }
 });
 
-selfOpen.addEventListener("click", openSelfPanel);
-selfClose.addEventListener("click", closeSelfPanel);
-selfPanel.addEventListener("click", (event) => {
+selfOpen?.addEventListener("click", openSelfPanel);
+selfClose?.addEventListener("click", closeSelfPanel);
+selfPanel?.addEventListener("click", (event) => {
   if (event.target === selfPanel) {
     closeSelfPanel();
   }
 });
-selfLogin.addEventListener("click", signInSelf);
-selfSignup.addEventListener("click", signUpSelf);
-selfLogout.addEventListener("click", signOutSelf);
-selfForm.addEventListener("submit", saveSelfProfile);
-adminOpen.addEventListener("click", openAdmin);
+selfLogin?.addEventListener("click", signInSelf);
+selfSignup?.addEventListener("click", signUpSelf);
+selfLogout?.addEventListener("click", signOutSelf);
+selfForm?.addEventListener("submit", saveSelfProfile);
+adminOpen?.addEventListener("click", openAdmin);
 directoryOpen.addEventListener("click", openDirectory);
 directoryClose.addEventListener("click", closeDirectory);
 alumniOpen.addEventListener("click", () => {
@@ -1177,20 +1177,20 @@ directorySearch.addEventListener("input", () => {
   directoryQuery = directorySearch.value;
   renderDirectory();
 });
-adminClose.addEventListener("click", closeAdmin);
-adminPanel.addEventListener("click", (event) => {
+adminClose?.addEventListener("click", closeAdmin);
+adminPanel?.addEventListener("click", (event) => {
   if (event.target === adminPanel) {
     closeAdmin();
   }
 });
-adminAdd.addEventListener("click", () => {
+adminAdd?.addEventListener("click", () => {
   members.push(createBlankMember());
   adminIndex = members.length - 1;
   saveLocalMembers();
   refreshShowcase(adminIndex);
   fillAdminForm();
 });
-adminForm.addEventListener("submit", async (event) => {
+adminForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const existing = members[adminIndex] || createBlankMember();
   const updated = memberFromForm(existing);
@@ -1208,7 +1208,7 @@ adminForm.addEventListener("submit", async (event) => {
   fillAdminForm();
   setAdminStatus("已保存到当前浏览器预览。");
 });
-adminDelete.addEventListener("click", () => {
+adminDelete?.addEventListener("click", () => {
   if (members.length <= 1) {
     setAdminStatus("至少保留一名成员。");
     return;
@@ -1220,8 +1220,8 @@ adminDelete.addEventListener("click", () => {
   fillAdminForm();
   setAdminStatus("已删除成员。");
 });
-adminExport.addEventListener("click", downloadMembersJson);
-adminPublish.addEventListener("click", publishToGithub);
+adminExport?.addEventListener("click", downloadMembersJson);
+adminPublish?.addEventListener("click", publishToGithub);
 
 stage.addEventListener("mouseenter", pauseCycle);
 stage.addEventListener("mouseleave", resumeCycle);
