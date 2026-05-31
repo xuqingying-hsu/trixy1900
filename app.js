@@ -280,6 +280,14 @@ function globalIndexForActive(activeIndexValue) {
   return member ? members.indexOf(member) : 0;
 }
 
+function activePositionForMember(index) {
+  const member = members[index];
+  if (!member || member.status === "alumni") {
+    return -1;
+  }
+  return activeMembers().findIndex((activeMember) => members.indexOf(activeMember) === index);
+}
+
 function renderRoster() {
   rosterEl.innerHTML = "";
   const active = activeMembers();
@@ -396,8 +404,11 @@ function renderAlumni() {
 
   alumniGrid.innerHTML = "";
   alumniMembers().forEach((member) => {
-    const card = document.createElement("article");
+    const index = members.indexOf(member);
+    const card = document.createElement("button");
     card.className = "directory-card";
+    card.type = "button";
+    card.setAttribute("aria-label", `查看旧友 ${member.name} 的角色展示`);
     card.innerHTML = `
       <img src="${escapeHtml(member.avatar || imageFor(member))}" alt="">
       <span>
@@ -406,6 +417,11 @@ function renderAlumni() {
         <small>${escapeHtml((member.tags || ["旧友"]).slice(0, 2).join(" · "))}</small>
       </span>
     `;
+    card.addEventListener("click", () => {
+      setActive(index, true, { allowAlumni: true });
+      alumniPanel.classList.remove("is-open");
+      alumniPanel.setAttribute("aria-hidden", "true");
+    });
     alumniGrid.append(card);
   });
 
@@ -423,18 +439,18 @@ function refreshShowcase(index = activeIndex) {
   setActive(Math.min(index, members.length - 1));
 }
 
-function setActive(index, userInitiated = false) {
+function setActive(index, userInitiated = false, options = {}) {
   if (!members.length) {
     return;
   }
 
   const active = activeMembers();
-  if (!active.length) {
+  if (!active.length && !options.allowAlumni) {
     return;
   }
 
   const requestedMember = members[index];
-  const member = requestedMember && requestedMember.status !== "alumni"
+  const member = requestedMember && (options.allowAlumni || requestedMember.status !== "alumni")
     ? requestedMember
     : active[((index % active.length) + active.length) % active.length];
   activeIndex = members.indexOf(member);
@@ -446,7 +462,10 @@ function setActive(index, userInitiated = false) {
     nameEl.textContent = member.name;
     roleEl.textContent = member.role;
     quoteEl.textContent = member.quote || "长风入港，同赴涅槃。";
-    memberIndexEl.textContent = String(activeIndex + 1).padStart(2, "0");
+    const activePosition = activePositionForMember(activeIndex);
+    memberIndexEl.textContent = activePosition >= 0
+      ? String(activePosition + 1).padStart(2, "0")
+      : "旧友";
 
     tagsEl.innerHTML = "";
     (member.tags || []).forEach((tag) => {
@@ -467,7 +486,7 @@ function setActive(index, userInitiated = false) {
       card.setAttribute("aria-current", index === activeIndex ? "true" : "false");
     });
     renderDirectory();
-    if (!userInitiated && members.length > 8) {
+    if (!userInitiated && member.status !== "alumni" && members.length > 8) {
       renderRoster();
     }
 
@@ -475,8 +494,10 @@ function setActive(index, userInitiated = false) {
     restartProgress();
   }, 220);
 
-  if (userInitiated) {
+  if (userInitiated && member.status !== "alumni") {
     restartCycle();
+  } else if (userInitiated) {
+    pauseCycle();
   }
 }
 
@@ -487,7 +508,7 @@ function startCycle() {
   }
   timer = window.setInterval(() => {
     const active = activeMembers();
-    const activePosition = active.findIndex((member) => members.indexOf(member) === activeIndex);
+    const activePosition = Math.max(0, active.findIndex((member) => members.indexOf(member) === activeIndex));
     setActive(members.indexOf(active[(activePosition + 1) % active.length]));
   }, cycleMs);
   restartProgress();
