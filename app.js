@@ -410,9 +410,9 @@ function renderAlumni() {
     card.type = "button";
     card.setAttribute("aria-label", `查看旧友 ${member.name} 的角色展示`);
     card.innerHTML = `
-      <span class="alumni-portrait-preview">
-        <img src="${escapeHtml(imageFor(member))}" alt="${escapeHtml(member.name)}角色展示">
-        <b>角色展示</b>
+      <span class="alumni-avatar-preview">
+        <img src="${escapeHtml(member.avatar || placeholderImage)}" alt="${escapeHtml(member.name)}头像">
+        <b>头像</b>
       </span>
       <span class="alumni-info">
         <strong>${escapeHtml(member.name)}</strong>
