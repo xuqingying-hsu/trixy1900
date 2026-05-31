@@ -891,7 +891,7 @@ h1 {
   align-items: stretch;
 }
 
-.alumni-portrait-preview {
+.alumni-avatar-preview {
   position: relative;
   display: block;
   overflow: hidden;
@@ -899,14 +899,14 @@ h1 {
   background: rgba(0, 0, 0, 0.28);
 }
 
-.alumni-portrait-preview img {
+.alumni-avatar-preview img {
   width: 100%;
   height: 190px;
   border: 0;
-  object-position: center top;
+  object-position: center;
 }
 
-.alumni-portrait-preview b {
+.alumni-avatar-preview b {
   position: absolute;
   left: 8px;
   top: 8px;
