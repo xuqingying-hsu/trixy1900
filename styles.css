@@ -818,6 +818,11 @@ h1 {
   padding: 16px;
 }
 
+#alumniGrid {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 380px));
+  align-items: start;
+}
+
 .directory-card {
   display: grid;
   min-height: 96px;
@@ -881,8 +886,8 @@ h1 {
 }
 
 .alumni-card {
-  min-height: 188px;
-  grid-template-columns: minmax(130px, 48%) 1fr;
+  min-height: 210px;
+  grid-template-columns: minmax(150px, 54%) minmax(0, 1fr);
   align-items: stretch;
 }
 
@@ -896,7 +901,7 @@ h1 {
 
 .alumni-portrait-preview img {
   width: 100%;
-  height: 168px;
+  height: 190px;
   border: 0;
   object-position: center top;
 }
@@ -917,27 +922,6 @@ h1 {
 .alumni-info {
   align-content: center;
   min-width: 0;
-}
-
-.alumni-avatar-wrap {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.alumni-card .alumni-avatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  object-position: center;
-  filter: grayscale(0.36) contrast(1.08);
-}
-
-.alumni-avatar-wrap i {
-  color: rgba(244, 240, 229, 0.58);
-  font-size: 11px;
-  font-style: normal;
 }
 
 .directory-empty {
