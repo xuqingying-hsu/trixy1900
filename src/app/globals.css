@@ -257,6 +257,18 @@ select {
   min-height: 250px;
 }
 
+.reading-choice-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.option-card-label {
+  cursor: pointer;
+}
+
 .option-card::before {
   position: absolute;
   inset: 10px;
@@ -290,13 +302,25 @@ select {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.option-card.is-active {
+.option-card.is-active,
+.reading-choice-input:nth-of-type(1):checked ~ .option-grid .option-card-label:nth-child(1),
+.reading-choice-input:nth-of-type(2):checked ~ .option-grid .option-card-label:nth-child(2),
+.reading-choice-input:nth-of-type(3):checked ~ .option-grid .option-card-label:nth-child(3),
+.reading-choice-input:nth-of-type(4):checked ~ .option-grid .option-card-label:nth-child(4) {
   border-color: rgba(215, 200, 255, 0.78);
   background:
     linear-gradient(150deg, rgba(215, 200, 255, 0.18), transparent 36%),
     linear-gradient(30deg, rgba(143, 241, 223, 0.12), transparent 48%),
     linear-gradient(250deg, rgba(255, 155, 204, 0.1), transparent 42%),
     var(--veil);
+}
+
+.reading-choice-input:nth-of-type(1):focus-visible ~ .option-grid .option-card-label:nth-child(1),
+.reading-choice-input:nth-of-type(2):focus-visible ~ .option-grid .option-card-label:nth-child(2),
+.reading-choice-input:nth-of-type(3):focus-visible ~ .option-grid .option-card-label:nth-child(3),
+.reading-choice-input:nth-of-type(4):focus-visible ~ .option-grid .option-card-label:nth-child(4) {
+  outline: 2px solid rgba(143, 241, 223, 0.8);
+  outline-offset: 4px;
 }
 
 .option-grid {
@@ -346,6 +370,21 @@ select {
     linear-gradient(180deg, rgba(255, 249, 255, 0.11), transparent 38%),
     linear-gradient(115deg, rgba(143, 241, 223, 0.06), rgba(255, 155, 204, 0.05)),
     var(--veil-strong);
+}
+
+.option-results {
+  display: grid;
+}
+
+.option-result {
+  display: none;
+}
+
+.reading-choice-input:nth-of-type(1):checked ~ .option-results .option-result:nth-child(1),
+.reading-choice-input:nth-of-type(2):checked ~ .option-results .option-result:nth-child(2),
+.reading-choice-input:nth-of-type(3):checked ~ .option-results .option-result:nth-child(3),
+.reading-choice-input:nth-of-type(4):checked ~ .option-results .option-result:nth-child(4) {
+  display: block;
 }
 
 .legacy-reading-panel {

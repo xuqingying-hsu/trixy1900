@@ -7,4 +7,5 @@ coverage/
 dist/
 tools/
 tunnel.log
+tmp-next-*.log
 npm-debug.log*
