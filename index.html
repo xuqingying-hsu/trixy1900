@@ -9,10 +9,17 @@
     <title>燕云十六声 · 涅槃港</title>
     <meta name="music-credit" content="Wuxia series by PeriTune, CC BY 4.0, https://peritune.com/" />
     <link rel="canonical" href="http://trixy1900.cn/" />
-    <link rel="stylesheet" href="styles.css?v=20260531i" />
+    <link rel="stylesheet" href="styles.css?v=20260531j" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js?v=20260531i"></script>
-    <script src="app.js?v=20260531i" defer></script>
+    <script src="config.js?v=20260531j"></script>
+    <script src="app.js?v=20260531j" defer></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js?v=20260531j", { updateViaCache: "none" }).catch(() => {});
+        });
+      }
+    </script>
   </head>
   <body>
     <audio
