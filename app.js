@@ -410,8 +410,11 @@ function renderAlumni() {
     card.type = "button";
     card.setAttribute("aria-label", `查看旧友 ${member.name} 的角色展示`);
     card.innerHTML = `
-      <img src="${escapeHtml(imageFor(member))}" alt="${escapeHtml(member.name)}角色展示">
-      <span>
+      <span class="alumni-portrait-preview">
+        <img src="${escapeHtml(imageFor(member))}" alt="${escapeHtml(member.name)}角色展示">
+      </span>
+      <span class="alumni-info">
+        <img class="alumni-avatar" src="${escapeHtml(member.avatar || placeholderImage)}" alt="${escapeHtml(member.name)}头像">
         <strong>${escapeHtml(member.name)}</strong>
         <span>${escapeHtml(member.role || "旧友成员")}</span>
         <small>${escapeHtml((member.tags || ["旧友"]).slice(0, 2).join(" · "))}</small>
