@@ -65,11 +65,9 @@ begin
     return new;
   end if;
 
-  -- Ordinary members can edit profile text/images. New/edited profiles auto-publish,
-  -- but members cannot move themselves into or out of the alumni archive.
-  if old.status = 'alumni' then
-    new.status = old.status;
-  elsif new.status not in ('active', 'pending') then
+  -- Ordinary members can edit profile text/images and choose whether they are
+  -- active members or alumni. Pending edits auto-publish as active.
+  if new.status not in ('active', 'alumni') then
     new.status = 'active';
   end if;
   new.sort_order = old.sort_order;
@@ -129,11 +127,12 @@ using ((select auth.uid()) = owner_id);
 
 drop policy if exists "members can create own pending profile" on public.members;
 drop policy if exists "members can create own active profile" on public.members;
-create policy "members can create own active profile"
+drop policy if exists "members can create own visible profile" on public.members;
+create policy "members can create own visible profile"
 on public.members
 for insert
 to authenticated
-with check ((select auth.uid()) = owner_id and status = 'active');
+with check ((select auth.uid()) = owner_id and status in ('active', 'alumni'));
 
 drop policy if exists "members can update own profile" on public.members;
 create policy "members can update own profile"
