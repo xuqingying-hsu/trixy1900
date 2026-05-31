@@ -1117,7 +1117,8 @@ h1 {
 }
 
 .self-card input,
-.self-card textarea {
+.self-card textarea,
+.self-card select {
   width: 100%;
   border: 1px solid rgba(244, 240, 229, 0.16);
   background: rgba(0, 0, 0, 0.38);
