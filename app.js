@@ -406,15 +406,16 @@ function renderAlumni() {
   alumniMembers().forEach((member) => {
     const index = members.indexOf(member);
     const card = document.createElement("button");
-    card.className = "directory-card";
+    card.className = "directory-card alumni-card";
     card.type = "button";
     card.setAttribute("aria-label", `查看旧友 ${member.name} 的角色展示`);
     card.innerHTML = `
-      <img src="${escapeHtml(member.avatar || imageFor(member))}" alt="">
+      <img src="${escapeHtml(imageFor(member))}" alt="${escapeHtml(member.name)}角色展示">
       <span>
         <strong>${escapeHtml(member.name)}</strong>
         <span>${escapeHtml(member.role || "旧友成员")}</span>
         <small>${escapeHtml((member.tags || ["旧友"]).slice(0, 2).join(" · "))}</small>
+        <em>点击查看角色展示</em>
       </span>
     `;
     card.addEventListener("click", () => {
