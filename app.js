@@ -100,6 +100,7 @@ let adminIndex = 0;
 let directoryQuery = "";
 
 const localMembersKey = "nirvana-harbor-members";
+const alumniNameOverrides = new Set(["戎袼"]);
 const repoConfig = {
   owner: "nirvana-harbor",
   repo: "trixy1900",
@@ -142,16 +143,20 @@ function normalizeMemberRole(role) {
   return value;
 }
 
-function normalizeMemberStatus(status) {
+function normalizeMemberStatus(status, name = "") {
+  if (alumniNameOverrides.has(name)) {
+    return "alumni";
+  }
   return status === "alumni" ? "alumni" : "active";
 }
 
 function normalizeMember(member) {
+  const name = normalizeMemberName(member?.name);
   return {
     ...member,
-    name: normalizeMemberName(member?.name),
+    name,
     role: normalizeMemberRole(member?.role),
-    status: normalizeMemberStatus(member?.status)
+    status: normalizeMemberStatus(member?.status, name)
   };
 }
 
@@ -636,7 +641,7 @@ function fillSelfForm() {
   selfName.value = selfProfile?.name || "";
   selfRole.value = selfProfile?.role || "社众";
   if (selfStatusType) {
-    selfStatusType.value = normalizeMemberStatus(selfProfile?.status);
+    selfStatusType.value = normalizeMemberStatus(selfProfile?.status, normalizeMemberName(selfProfile?.name));
   }
   selfTags.value = Array.isArray(selfProfile?.tags) ? selfProfile.tags.join("，") : "";
   selfQuote.value = selfProfile?.quote || "";
@@ -775,7 +780,7 @@ async function saveSelfProfile(event) {
       slug: selfProfile?.slug || `${slugify(name)}-${selfSession.user.id.slice(0, 8)}`,
       name,
       role: normalizeMemberRole(selfRole.value),
-      status: normalizeMemberStatus(selfStatusType?.value),
+      status: normalizeMemberStatus(selfStatusType?.value, normalizeMemberName(name)),
       avatar,
       portrait,
       tags: parseTags(selfTags.value),
