@@ -76,6 +76,7 @@ const selfAuthStatus = document.querySelector("#selfAuthStatus");
 const selfForm = document.querySelector("#selfForm");
 const selfName = document.querySelector("#selfName");
 const selfRole = document.querySelector("#selfRole");
+const selfStatusType = document.querySelector("#selfStatusType");
 const selfTags = document.querySelector("#selfTags");
 const selfQuote = document.querySelector("#selfQuote");
 const selfAvatar = document.querySelector("#selfAvatar");
@@ -141,11 +142,16 @@ function normalizeMemberRole(role) {
   return value;
 }
 
+function normalizeMemberStatus(status) {
+  return status === "alumni" ? "alumni" : "active";
+}
+
 function normalizeMember(member) {
   return {
     ...member,
     name: normalizeMemberName(member?.name),
-    role: normalizeMemberRole(member?.role)
+    role: normalizeMemberRole(member?.role),
+    status: normalizeMemberStatus(member?.status)
   };
 }
 
@@ -227,7 +233,7 @@ function memberFromSupabase(row) {
     role: row.role || "社众",
     avatar: row.avatar || placeholderImage,
     portrait: row.portrait || "",
-    status: row.status || "active",
+    status: normalizeMemberStatus(row.status),
     tags: Array.isArray(row.tags) ? row.tags : [],
     quote: row.quote || "长风入港，同赴涅槃。"
   };
@@ -629,6 +635,9 @@ async function loadSelfProfile() {
 function fillSelfForm() {
   selfName.value = selfProfile?.name || "";
   selfRole.value = selfProfile?.role || "社众";
+  if (selfStatusType) {
+    selfStatusType.value = normalizeMemberStatus(selfProfile?.status);
+  }
   selfTags.value = Array.isArray(selfProfile?.tags) ? selfProfile.tags.join("，") : "";
   selfQuote.value = selfProfile?.quote || "";
   selfAvatar.value = "";
@@ -766,7 +775,7 @@ async function saveSelfProfile(event) {
       slug: selfProfile?.slug || `${slugify(name)}-${selfSession.user.id.slice(0, 8)}`,
       name,
       role: normalizeMemberRole(selfRole.value),
-      status: selfProfile?.status === "alumni" ? "alumni" : "active",
+      status: normalizeMemberStatus(selfStatusType?.value),
       avatar,
       portrait,
       tags: parseTags(selfTags.value),
