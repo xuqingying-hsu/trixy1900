@@ -266,6 +266,10 @@ function imageFor(member) {
   return member.portrait || member.avatar || placeholderImage;
 }
 
+function avatarFor(member) {
+  return member.avatar || placeholderImage;
+}
+
 function activeMembers() {
   return members.filter((member) => member.status !== "alumni");
 }
@@ -411,7 +415,7 @@ function renderAlumni() {
     card.setAttribute("aria-label", `查看旧友 ${member.name} 的角色展示`);
     card.innerHTML = `
       <span class="alumni-avatar-preview">
-        <img src="${escapeHtml(member.avatar || placeholderImage)}" alt="${escapeHtml(member.name)}头像">
+        <img src="${escapeHtml(avatarFor(member))}" alt="${escapeHtml(member.name)}头像">
         <b>头像</b>
       </span>
       <span class="alumni-info">
