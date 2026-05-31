@@ -415,10 +415,6 @@ function renderAlumni() {
         <b>角色展示</b>
       </span>
       <span class="alumni-info">
-        <span class="alumni-avatar-wrap">
-          <img class="alumni-avatar" src="${escapeHtml(member.avatar || placeholderImage)}" alt="${escapeHtml(member.name)}头像">
-          <i>头像</i>
-        </span>
         <strong>${escapeHtml(member.name)}</strong>
         <span>${escapeHtml(member.role || "旧友成员")}</span>
         <small>${escapeHtml((member.tags || ["旧友"]).slice(0, 2).join(" · "))}</small>
