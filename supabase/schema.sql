@@ -101,6 +101,10 @@ set role = '社众'
 where role = '港内成员';
 
 update public.members
+set status = 'alumni'
+where name = '戎袼';
+
+update public.members
 set sort_order = 0
 where name = '江都夷' and status <> 'alumni';
 
